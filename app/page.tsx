@@ -22,7 +22,7 @@ import {
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+// import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Spinner } from '@/components/ui/spinner';
 import { FilterMultiSelect } from '@/components/filter-multi-select';
@@ -32,7 +32,7 @@ import { SeeLiveDialog } from '@/components/see-live-dialog';
 import { ContactDialog } from '@/components/contact-dialog';
 import { MoreFiltersDialog, type MoreFiltersApplyPayload } from '@/components/more-filters-dialog';
 import { AiSearchDialog, type AiSearchApplyPayload } from '@/components/ai-search-dialog';
-import { AiChatDialog } from '@/components/ai-chat-dialog';
+// import { AiChatDialog } from '@/components/ai-chat-dialog';
 import { LandingDealCard } from '@/components/landing-deal-card';
 import { useViewProWidget } from '@/components/view-pro-widget-provider';
 import { api } from '@/lib/api';
@@ -84,7 +84,7 @@ export default function HomePage() {
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
   const [aiSearchDialogOpen, setAiSearchDialogOpen] = useState(false);
-  const [aiChatDialogOpen, setAiChatDialogOpen] = useState(false);
+  // const [aiChatDialogOpen, setAiChatDialogOpen] = useState(false);
 
   const submitSearch = useCallback(() => {
     const sp = new URLSearchParams();
@@ -333,7 +333,8 @@ export default function HomePage() {
                 aria-label="Search options"
                 className={cn(
                   'grid min-w-0 overflow-x-hidden border-b border-neutral-200',
-                  isAvailable ? 'grid-cols-3' : 'grid-cols-2',
+                  // isAvailable ? 'grid-cols-3' : 'grid-cols-2',
+                  isAvailable ? 'grid-cols-2' : 'grid-cols-1',
                 )}
               >
                 <button
@@ -366,7 +367,7 @@ export default function HomePage() {
                     </span>
                   </span>
                 </button>
-                <button
+                {/* <button
                   type="button"
                   role="tab"
                   aria-selected={searchTab === 'ai'}
@@ -400,7 +401,7 @@ export default function HomePage() {
                       </span>
                     </span>
                   </span>
-                </button>
+                </button> */}
                 {isAvailable ? (
                   <button
                     type="button"
@@ -806,7 +807,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <button
+      {/* <button
         type="button"
         aria-label="Open Ask RecVan AI"
         onClick={() => setAiChatDialogOpen(true)}
@@ -817,7 +818,7 @@ export default function HomePage() {
           <span className="block text-xs font-extrabold tracking-wide text-white uppercase">Ask RecVan AI</span>
           <span className="mt-0.5 block text-[11px] leading-snug text-white">Ask anything!</span>
         </span>
-      </button>
+      </button> */}
 
       <SeeLiveDialog open={seeLiveDialogOpen} onOpenChange={setSeeLiveDialogOpen} featuredUnits={units} />
       <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
@@ -836,7 +837,7 @@ export default function HomePage() {
         onKeywordChange={setKeyword}
         onApply={applyAiSearch}
       />
-      <AiChatDialog open={aiChatDialogOpen} onOpenChange={setAiChatDialogOpen} />
+      {/* <AiChatDialog open={aiChatDialogOpen} onOpenChange={setAiChatDialogOpen} /> */}
     </div>
   );
 }

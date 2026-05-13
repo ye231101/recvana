@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AiChatDialog } from '@/components/ai-chat-dialog';
+// import { AiChatDialog } from '@/components/ai-chat-dialog';
 import { ContactDialog } from '@/components/contact-dialog';
 import { useViewProWidget, type ViewProWidgetUser } from '@/components/view-pro-widget-provider';
 import {
@@ -91,7 +91,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [floorplanDialogOpen, setFloorplanDialogOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
+  // const [aiChatDialogOpen, setAiChatDialogOpen] = useState(false);
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -405,10 +405,10 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             </button>
           ) : null}
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => setAiOpen(true)}
+              onClick={() => setAiChatDialogOpen(true)}
               className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
             >
               <MessageCircle className="size-5 shrink-0" strokeWidth={2} aria-hidden />
@@ -417,18 +417,19 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
                 <p className="text-xs text-neutral-600">Live support</p>
               </div>
             </button>
-            <button
-              type="button"
-              onClick={() => setContactOpen(true)}
-              className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
-            >
-              <Smartphone className="size-5 shrink-0" strokeWidth={2} aria-hidden />
-              <div className="text-left">
-                <p className="text-sm font-bold text-neutral-900">Text Us</p>
-                <p className="text-xs text-neutral-600">Fast response</p>
-              </div>
-            </button>
-          </div>
+          </div> */}
+
+          <button
+            type="button"
+            onClick={() => setContactOpen(true)}
+            className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
+          >
+            <Smartphone className="size-5 shrink-0" strokeWidth={2} aria-hidden />
+            <div className="text-left">
+              <p className="text-sm font-bold text-neutral-900">Text Us</p>
+              <p className="text-xs text-neutral-600">Fast response</p>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -680,7 +681,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
       </Dialog>
 
       <ContactDialog open={contactOpen} onOpenChange={setContactOpen} unit={unit} />
-      <AiChatDialog open={aiOpen} onOpenChange={setAiOpen} />
+      {/* <AiChatDialog open={aiChatDialogOpen} onOpenChange={setAiChatDialogOpen} /> */}
     </div>
   );
 }
