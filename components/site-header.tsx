@@ -16,41 +16,41 @@ const PHONE_TEL = 'tel:1-786-570-8584';
 
 const HEADER_SEARCH_PER_PAGE = 10;
 
-const SEARCH_RV_TYPES = [
-  { label: 'Class A', href: '/inventory?body=class-a', image: '/images/rv/class-a.svg' },
-  { label: 'Class B', href: '/inventory?body=class-b', image: '/images/rv/class-b.svg' },
-  { label: 'Class C', href: '/inventory?body=class-c', image: '/images/rv/class-c.svg' },
-  { label: 'Towable', href: '/inventory?body=5th-wheel,travel-trailer,toy-hauler', image: '/images/rv/towable.svg' },
-  { label: 'Overlander', href: '/inventory?rvType=overlander', image: '/images/rv/overlander.svg' },
-  { label: 'Super C', href: '/inventory?rvType=super-c', image: '/images/rv/super-c.svg' },
-  { label: 'Adventure Van', href: '/inventory?rvType=adventure-van', image: '/images/rv/adventure-van.svg' },
-] as const;
+// const SEARCH_RV_TYPES = [
+//   { label: 'Class A', href: '/inventory?body=class-a', image: '/images/rv/class-a.svg' },
+//   { label: 'Class B', href: '/inventory?body=class-b', image: '/images/rv/class-b.svg' },
+//   { label: 'Class C', href: '/inventory?body=class-c', image: '/images/rv/class-c.svg' },
+//   { label: 'Towable', href: '/inventory?body=5th-wheel,travel-trailer,toy-hauler', image: '/images/rv/towable.svg' },
+//   { label: 'Overlander', href: '/inventory?rvType=overlander', image: '/images/rv/overlander.svg' },
+//   { label: 'Super C', href: '/inventory?rvType=super-c', image: '/images/rv/super-c.svg' },
+//   { label: 'Adventure Van', href: '/inventory?rvType=adventure-van', image: '/images/rv/adventure-van.svg' },
+// ] as const;
 
-function inventoryThumbSrc(unit: InventoryUnit): string {
-  return unit.thumbnails?.[0] ?? unit.images?.[0] ?? unit.defaultImageUrl ?? '/images/photos_coming_soon.jpg';
-}
+// function inventoryThumbSrc(unit: InventoryUnit): string {
+//   return unit.thumbnails?.[0] ?? unit.images?.[0] ?? unit.defaultImageUrl ?? '/images/photos_coming_soon.jpg';
+// }
 
-function HeaderSearchInventoryRow({ unit }: { unit: InventoryUnit }) {
-  const thumb = inventoryThumbSrc(unit);
-  const typeLine = [unit.wI_Body, unit.wI_Fuel].filter(Boolean).join(' - ');
+// function HeaderSearchInventoryRow({ unit }: { unit: InventoryUnit }) {
+//   const thumb = inventoryThumbSrc(unit);
+//   const typeLine = [unit.wI_Body, unit.wI_Fuel].filter(Boolean).join(' - ');
 
-  return (
-    <Link href={`/inventory/${unit.id}`} className="hover:bg-muted/60 flex gap-3 p-2 transition-colors">
-      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-neutral-100">
-        <Image src={thumb} alt="" fill className="object-cover" sizes="80px" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-bold text-neutral-900">{unit.title}</p>
-        <p className="text-muted-foreground text-xs font-normal">{unit.stockNumber}</p>
-        {typeLine ? <p className="text-xs font-normal text-neutral-800">{typeLine}</p> : null}
-        <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs font-normal">
-          <MapPin className="size-3 shrink-0 opacity-70" aria-hidden />
-          <span className="truncate">{unit.location}</span>
-        </p>
-      </div>
-    </Link>
-  );
-}
+//   return (
+//     <Link href={`/inventory/${unit.id}`} className="hover:bg-muted/60 flex gap-3 p-2 transition-colors">
+//       <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-neutral-100">
+//         <Image src={thumb} alt="" fill className="object-cover" sizes="80px" />
+//       </div>
+//       <div className="min-w-0 flex-1">
+//         <p className="truncate text-sm font-bold text-neutral-900">{unit.title}</p>
+//         <p className="text-muted-foreground text-xs font-normal">{unit.stockNumber}</p>
+//         {typeLine ? <p className="text-xs font-normal text-neutral-800">{typeLine}</p> : null}
+//         <p className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs font-normal">
+//           <MapPin className="size-3 shrink-0 opacity-70" aria-hidden />
+//           <span className="truncate">{unit.location}</span>
+//         </p>
+//       </div>
+//     </Link>
+//   );
+// }
 
 function HeaderSearch({ className }: { className?: string }) {
   const router = useRouter();
@@ -58,90 +58,101 @@ function HeaderSearch({ className }: { className?: string }) {
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get('q') ?? '';
   const [inputValue, setInputValue] = useState(searchQuery);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState<InventoryUnit[]>([]);
+  // const [menuOpen, setMenuOpen] = useState(false);
+  // const [searchResults, setSearchResults] = useState<InventoryUnit[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setInputValue(searchQuery);
   }, [searchQuery]);
 
-  const blurSearchInput = () => {
-    formRef.current?.querySelector<HTMLInputElement>('input[name="q"]')?.blur();
-  };
+  // const blurSearchInput = () => {
+  //   formRef.current?.querySelector<HTMLInputElement>('input[name="q"]')?.blur();
+  // };
 
-  const clearCloseTimer = () => {
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  };
+  // const clearCloseTimer = () => {
+  //   if (closeTimerRef.current) {
+  //     clearTimeout(closeTimerRef.current);
+  //     closeTimerRef.current = null;
+  //   }
+  // };
 
-  const openSearchMenu = () => {
-    clearCloseTimer();
-    setMenuOpen(true);
-  };
+  // const openSearchMenu = () => {
+  //   clearCloseTimer();
+  //   setMenuOpen(true);
+  // };
+
+  // useEffect(() => {
+  //   setMenuOpen(false);
+  //   clearCloseTimer();
+  // }, [pathname, searchParams]);
+
+  // useEffect(() => {
+  //   if (!menuOpen) return;
+  //   const onKeyDown = (e: KeyboardEvent) => {
+  //     if (e.key === 'Escape') {
+  //       e.preventDefault();
+  //       setMenuOpen(false);
+  //       blurSearchInput();
+  //     }
+  //   };
+  //   document.addEventListener('keydown', onKeyDown);
+  //   return () => document.removeEventListener('keydown', onKeyDown);
+  // }, [menuOpen]);
 
   useEffect(() => {
-    setMenuOpen(false);
-    clearCloseTimer();
-  }, [pathname, searchParams]);
-
-  useEffect(() => {
-    if (!menuOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        setMenuOpen(false);
-        blurSearchInput();
+        // blurSearchInput();
       }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [menuOpen]);
+  }, []);
 
-  useEffect(() => () => clearCloseTimer(), []);
+  // useEffect(() => () => clearCloseTimer(), []);
 
-  useEffect(() => {
-    const q = inputValue.trim();
+  // useEffect(() => {
+  //   const q = inputValue.trim();
 
-    if (q === '') {
-      setSearchResults([]);
-      return;
-    }
+  //   if (q === '') {
+  //     setSearchResults([]);
+  //     return;
+  //   }
 
-    if (!menuOpen) {
-      return;
-    }
+  //   if (!menuOpen) {
+  //     return;
+  //   }
 
-    const ac = new AbortController();
-    const t = window.setTimeout(async () => {
-      try {
-        const res = (await api.get('inventory', {
-          params: {
-            currentPage: 1,
-            perPage: HEADER_SEARCH_PER_PAGE,
-            q,
-          },
-          signal: ac.signal,
-        })) as InventoryListResponse;
+  //   const ac = new AbortController();
+  //   const t = window.setTimeout(async () => {
+  //     try {
+  //       const res = (await api.get('inventory', {
+  //         params: {
+  //           currentPage: 1,
+  //           perPage: HEADER_SEARCH_PER_PAGE,
+  //           q,
+  //         },
+  //         signal: ac.signal,
+  //       })) as InventoryListResponse;
 
-        if (!res.data?.inventories) {
-          setSearchResults([]);
-          return;
-        }
-        setSearchResults(res.data.inventories.map(mapInventoryItem));
-      } catch (err) {
-        setSearchResults([]);
-      }
-    }, 320);
+  //       if (!res.data?.inventories) {
+  //         setSearchResults([]);
+  //         return;
+  //       }
+  //       setSearchResults(res.data.inventories.map(mapInventoryItem));
+  //     } catch (err) {
+  //       setSearchResults([]);
+  //     }
+  //   }, 320);
 
-    return () => {
-      clearTimeout(t);
-      ac.abort();
-    };
-  }, [inputValue, menuOpen]);
+  //   return () => {
+  //     clearTimeout(t);
+  //     ac.abort();
+  //   };
+  // }, [inputValue, menuOpen]);
 
   const onSearchInputChange = (value: string) => {
     setInputValue(value);
@@ -154,7 +165,7 @@ function HeaderSearch({ className }: { className?: string }) {
 
   return (
     <>
-      {menuOpen && typeof document !== 'undefined'
+      {/* {menuOpen && typeof document !== 'undefined'
         ? createPortal(
             <button
               type="button"
@@ -169,7 +180,7 @@ function HeaderSearch({ className }: { className?: string }) {
             />,
             document.body,
           )
-        : null}
+        : null} */}
       <div className={cn('relative w-full min-w-0', className)}>
         <form ref={formRef} role="search" action="/inventory" method="get" className="relative w-full">
           <Search
@@ -184,16 +195,16 @@ function HeaderSearch({ className }: { className?: string }) {
             className="relative h-10 rounded-full border-gray-200 bg-gray-100 pr-4 pl-10 shadow-none"
             autoComplete="off"
             onChange={(e) => onSearchInputChange(e.target.value)}
-            onFocus={openSearchMenu}
-            onClick={openSearchMenu}
+            // onFocus={openSearchMenu}
+            // onClick={openSearchMenu}
             onBlur={() => {
-              clearCloseTimer();
-              closeTimerRef.current = setTimeout(() => setMenuOpen(false), 120);
+              // clearCloseTimer();
+              // closeTimerRef.current = setTimeout(() => setMenuOpen(false), 120);
             }}
           />
-          {menuOpen ? (
+          {/* {menuOpen ? (
             <div
-              className="absolute top-full right-0 left-0 z-10 mt-2 overflow-visible rounded-xl border border-neutral-200 bg-white shadow-lg"
+              className="absolute top-full right-0 left-0 z-10 mt-2 overflow-visible rounded-xl border border-neutral-200 bg-white"
               onMouseDown={(e) => e.preventDefault()}
             >
               <div className="relative z-0 p-4">
@@ -232,7 +243,7 @@ function HeaderSearch({ className }: { className?: string }) {
                 </div>
               ) : null}
             </div>
-          ) : null}
+          ) : null} */}
         </form>
       </div>
     </>
