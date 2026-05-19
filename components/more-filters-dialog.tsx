@@ -1,24 +1,22 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { api } from '@/lib/api';
 import {
   cn,
   formatMileage,
   formatPrice,
   rvTypeOptions,
-  sleepOptions,
   driveTrainOptions,
   fuelOptions,
   featureOptions,
+  sleepOptions,
 } from '@/lib/utils';
-import type { InventoryListResponse } from '@/lib/types';
 
 const YEAR_MIN = 2005;
 const YEAR_MAX = new Date().getFullYear() + 1;
@@ -31,170 +29,130 @@ function yearSelectItems(): number[] {
 
 export type MoreFiltersApplyPayload = {
   makes?: string[];
+  models?: string[];
+  locations?: string[];
   rvTypes?: string[];
-  sleeps?: string | null;
   driveTrains?: string[];
   fuels?: string[];
+  inventoryTypes?: string[];
   features?: string[];
+  sleeps?: string | null;
   minYear?: string | null;
   maxYear?: string | null;
   minPrice?: number | null;
   maxPrice?: number | null;
   minMileage?: number | null;
   maxMileage?: number | null;
-  locations?: string[];
 };
 
 type MoreFiltersDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  initialMakes: string[];
-  initialMaxPrice: number | null;
-  initialLocations: string[];
+  makes: string[];
+  models: string[];
+  locations: string[];
+  rvTypes: string[];
+  driveTrains: string[];
+  fuels: string[];
+  inventoryTypes: string[];
+  features: string[];
+  sleeps: string | null;
+  minYear: string | null;
+  maxYear: string | null;
+  minPrice: number | null;
+  maxPrice: number | null;
+  minMileage: number | null;
+  maxMileage: number | null;
+  setMakes: (makes: string[]) => void;
+  setModels: (models: string[]) => void;
+  setLocations: (locations: string[]) => void;
+  setRvTypes: (rvTypes: string[]) => void;
+  setDriveTrains: (driveTrains: string[]) => void;
+  setFuels: (fuels: string[]) => void;
+  setInventoryTypes: (inventoryTypes: string[]) => void;
+  setFeatures: (features: string[]) => void;
+  setSleeps: (sleeps: string | null) => void;
+  setMinYear: (minYear: string | null) => void;
+  setMaxYear: (maxYear: string | null) => void;
+  setMinPrice: (minPrice: number | null) => void;
+  setMaxPrice: (maxPrice: number | null) => void;
+  setMinMileage: (minMileage: number | null) => void;
+  setMaxMileage: (maxMileage: number | null) => void;
+  totalCount: number | null;
   onApply: (payload: MoreFiltersApplyPayload) => void;
 };
 
 export function MoreFiltersDialog({
   open,
   onOpenChange,
-  initialMakes,
-  initialMaxPrice,
-  initialLocations,
+  makes,
+  models,
+  locations,
+  rvTypes,
+  driveTrains,
+  fuels,
+  inventoryTypes,
+  features,
+  sleeps,
+  minYear,
+  maxYear,
+  minPrice,
+  maxPrice,
+  minMileage,
+  maxMileage,
+  setMakes,
+  setModels,
+  setLocations,
+  setRvTypes,
+  setDriveTrains,
+  setFuels,
+  setInventoryTypes,
+  setFeatures,
+  setSleeps,
+  setMinYear,
+  setMaxYear,
+  setMinPrice,
+  setMaxPrice,
+  setMinMileage,
+  setMaxMileage,
+  totalCount,
   onApply,
 }: MoreFiltersDialogProps) {
-  const [makes, setMakes] = useState<string[]>([]);
-  const [rvTypes, setRvTypes] = useState<string[]>([]);
-  const [sleeps, setSleeps] = useState<string | null>(null);
-  const [driveTrains, setDriveTrains] = useState<string[]>([]);
-  const [fuels, setFuels] = useState<string[]>([]);
-  const [features, setFeatures] = useState<string[]>([]);
-  const [minYear, setMinYear] = useState<string | null>(null);
-  const [maxYear, setMaxYear] = useState<string | null>(null);
-  const [minPrice, setMinPrice] = useState<number>(0);
-  const [maxPrice, setMaxPrice] = useState<number>(10_000_000);
-  const [minMileage, setMinMileage] = useState<number>(0);
-  const [maxMileage, setMaxMileage] = useState<number>(1_000_000);
-  const [locations, setLocations] = useState<string[]>([]);
-  const [matchCount, setMatchCount] = useState<number | null>(null);
-  const [countLoading, setCountLoading] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setMakes(initialMakes);
-    setRvTypes([]);
-    setSleeps(null);
-    setDriveTrains([]);
-    setFuels([]);
-    setFeatures([]);
-    setMinYear(null);
-    setMaxYear(null);
-    setMinPrice(0);
-    setMaxPrice(initialMaxPrice ?? 1_000_000);
-    setMinMileage(0);
-    setMaxMileage(150_000);
-    setLocations(initialLocations);
-  }, [open, initialMakes, initialMaxPrice, initialLocations]);
-
-  const apiQuery = useMemo(() => {
-    const query: Record<string, string | number> = {
-      currentPage: 1,
-      perPage: 1,
-      body: 'class-b',
-    };
-    if (makes.length > 0) query.make = makes.join(',');
-    if (rvTypes.length > 0) query.rvType = rvTypes.join(',');
-    if (sleeps) query.sleeps = sleeps;
-    if (driveTrains.length > 0) query.driveTrain = driveTrains.join(',');
-    if (fuels.length > 0) query.fuel = fuels.join(',');
-    if (features.length > 0) query.feature = features.join(',');
-    if (minYear) query.minYear = minYear;
-    if (maxYear) query.maxYear = maxYear;
-    if (minPrice) query.minPrice = minPrice;
-    if (maxPrice) query.maxPrice = maxPrice;
-    if (minMileage) query.minMileage = minMileage;
-    if (maxMileage) query.maxMileage = maxMileage;
-    if (locations.length > 0) query.location = locations.join(',');
-    return query;
-  }, [
-    makes,
-    rvTypes,
-    sleeps,
-    driveTrains,
-    fuels,
-    features,
-    minYear,
-    maxYear,
-    minPrice,
-    maxPrice,
-    minMileage,
-    maxMileage,
-    locations,
-  ]);
-
-  useEffect(() => {
-    if (!open) return;
-    let ignore = false;
-    const t = window.setTimeout(() => {
-      setCountLoading(true);
-      api
-        .get('inventory', { params: apiQuery })
-        .then((res) => {
-          if (ignore) return;
-          const data = res as unknown as InventoryListResponse;
-          setMatchCount(data.data.pagination.total);
-        })
-        .catch(() => {
-          if (ignore) return;
-          setMatchCount(null);
-        })
-        .finally(() => {
-          if (!ignore) setCountLoading(false);
-        });
-    }, 320);
-    return () => {
-      ignore = true;
-      window.clearTimeout(t);
-    };
-  }, [open, apiQuery]);
-
-  const toggleFeature = (f: string) => {
-    setFeatures((prev) => {
-      if (prev.includes(f)) return prev.filter((v) => v !== f);
-      return [...prev, f];
-    });
-  };
-
   const resetAll = useCallback(() => {
     setMakes([]);
+    setModels([]);
+    setLocations([]);
     setRvTypes([]);
-    setSleeps(null);
     setDriveTrains([]);
     setFuels([]);
+    setInventoryTypes([]);
     setFeatures([]);
+    setSleeps(null);
     setMinYear(null);
     setMaxYear(null);
     setMinPrice(0);
     setMaxPrice(1_000_000);
     setMinMileage(0);
     setMaxMileage(150_000);
-    setLocations([]);
   }, []);
 
   const handleApply = () => {
     onApply({
       makes,
+      models,
+      locations,
       rvTypes,
-      sleeps,
       driveTrains,
       fuels,
+      inventoryTypes,
       features,
+      sleeps,
       minYear,
       maxYear,
       minPrice,
       maxPrice,
       minMileage,
       maxMileage,
-      locations,
     });
     onOpenChange(false);
   };
@@ -262,10 +220,11 @@ export function MoreFiltersDialog({
                     <Checkbox
                       checked={rvTypes.includes(opt.value)}
                       onCheckedChange={() => {
-                        setRvTypes((prev) => {
-                          if (prev.includes(opt.value)) return prev.filter((v) => v !== opt.value);
-                          return [...prev, opt.value];
-                        });
+                        setRvTypes(
+                          rvTypes.includes(opt.value)
+                            ? rvTypes.filter((v) => v !== opt.value)
+                            : [...rvTypes, opt.value],
+                        );
                       }}
                       className="border-neutral-400 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-900 data-[state=checked]:text-white"
                     />
@@ -280,9 +239,7 @@ export function MoreFiltersDialog({
               <div className="mt-3 flex flex-wrap gap-2">
                 <span>{pillToggle(sleeps === null, () => setSleeps(null), 'Any')}</span>
                 {sleepOptions.map((opt) => (
-                  <span key={opt.value}>
-                    {pillToggle(sleeps === opt.value, () => setSleeps(opt.value), opt.label)}
-                  </span>
+                  <span key={opt.value}>{pillToggle(sleeps === opt.value, () => setSleeps(opt.value), opt.label)}</span>
                 ))}
               </div>
             </div>
@@ -305,10 +262,11 @@ export function MoreFiltersDialog({
                     <Checkbox
                       checked={driveTrains.includes(opt.value)}
                       onCheckedChange={() => {
-                        setDriveTrains((prev) => {
-                          if (prev.includes(opt.value)) return prev.filter((v) => v !== opt.value);
-                          return [...prev, opt.value];
-                        });
+                        setDriveTrains(
+                          driveTrains.includes(opt.value)
+                            ? driveTrains.filter((v) => v !== opt.value)
+                            : [...driveTrains, opt.value],
+                        );
                       }}
                       className="border-neutral-400 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-900 data-[state=checked]:text-white"
                     />
@@ -338,10 +296,9 @@ export function MoreFiltersDialog({
                     <Checkbox
                       checked={fuels.includes(opt.value)}
                       onCheckedChange={() => {
-                        setFuels((prev) => {
-                          if (prev.includes(opt.value)) return prev.filter((v) => v !== opt.value);
-                          return [...prev, opt.value];
-                        });
+                        setFuels(
+                          fuels.includes(opt.value) ? fuels.filter((v) => v !== opt.value) : [...fuels, opt.value],
+                        );
                       }}
                       className="border-neutral-400 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-900 data-[state=checked]:text-white"
                     />
@@ -358,7 +315,13 @@ export function MoreFiltersDialog({
                   <button
                     key={opt.value}
                     type="button"
-                    onClick={() => toggleFeature(opt.value)}
+                    onClick={() => {
+                      setFeatures(
+                        features.includes(opt.value)
+                          ? features.filter((v) => v !== opt.value)
+                          : [...features, opt.value],
+                      );
+                    }}
                     className={cn(
                       'rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
                       features.includes(opt.value)
@@ -413,10 +376,10 @@ export function MoreFiltersDialog({
                   min={0}
                   max={1_000_000}
                   step={5000}
-                  value={[minPrice, maxPrice]}
+                  value={[minPrice ?? 0, maxPrice ?? 1_000_000]}
                   onValueChange={(v) => {
-                    setMinPrice(v[0]);
-                    setMaxPrice(v[1]);
+                    setMinPrice(v[0] ?? 0);
+                    setMaxPrice(v[1] ?? 1_000_000);
                   }}
                   className="py-1 [&_[data-slot=slider-range]]:bg-neutral-900 [&_[data-slot=slider-thumb]]:border-neutral-900 [&_[data-slot=slider-thumb]]:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:hover:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:focus:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:focus-visible:ring-neutral-300/50"
                 />
@@ -434,10 +397,10 @@ export function MoreFiltersDialog({
                   min={0}
                   max={150_000}
                   step={5000}
-                  value={[minMileage, maxMileage]}
+                  value={[minMileage ?? 0, maxMileage ?? 150_000]}
                   onValueChange={(v) => {
-                    setMinMileage(v[0]);
-                    setMaxMileage(v[1]);
+                    setMinMileage(v[0] ?? 0);
+                    setMaxMileage(v[1] ?? 150_000);
                   }}
                   className="py-1 [&_[data-slot=slider-range]]:bg-neutral-900 [&_[data-slot=slider-thumb]]:border-neutral-900 [&_[data-slot=slider-thumb]]:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:hover:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:focus:ring-neutral-300/50 [&_[data-slot=slider-thumb]]:focus-visible:ring-neutral-300/50"
                 />
@@ -466,11 +429,9 @@ export function MoreFiltersDialog({
             className="h-11 cursor-pointer bg-neutral-900 px-6 font-semibold text-white hover:bg-neutral-800"
           >
             Apply Filters
-            {countLoading ? (
-              <span className="ml-1 opacity-80">…</span>
-            ) : matchCount != null ? (
+            {totalCount != null ? (
               <span className="ml-1 tabular-nums">
-                ({matchCount.toLocaleString('en-US')} {matchCount === 1 ? 'Van' : 'Vans'})
+                ({totalCount.toLocaleString('en-US')} {totalCount === 1 ? 'Van' : 'Vans'})
               </span>
             ) : null}
           </Button>

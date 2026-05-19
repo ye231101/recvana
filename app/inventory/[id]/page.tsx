@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
 import { mapInventoryItem, type InventoryResponse, type InventoryUnit } from '@/lib/types';
 
 async function fetchInventoryById(id: string): Promise<{ inventory: InventoryUnit }> {
-  const res = (await api.get(`inventory/${encodeURIComponent(id)}`)) as InventoryResponse;
+  const res = (await api.get(`inventory/${id}`)) as InventoryResponse;
   const { inventory } = res.data;
   return { inventory: mapInventoryItem(inventory) };
 }

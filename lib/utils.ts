@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import type { InventoryUnit } from '@/lib/types';
+import { type InventoryUnit } from '@/lib/types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -23,6 +23,11 @@ export function formatPrice(n: number | null): string | null {
     currency: 'USD',
     maximumFractionDigits: 0,
   }).format(Math.round(n));
+}
+
+export function formatLength(length: number | null): string | null {
+  if (!length) return null;
+  return `${length} ft.`;
 }
 
 export function formatMileage(mileage: number | null): string | null {
@@ -419,6 +424,17 @@ export const rvTypeOptions = [
   { label: 'Touring Van', value: 'touring-van' },
 ];
 
+export const driveTrainOptions = [
+  { label: '4WD', value: '4wd-4-wheel-drive' },
+  { label: 'AWD', value: 'awd-all-wheel-drive' },
+  { label: 'RWD', value: 'rwd-rear-wheel-drive' },
+];
+
+export const fuelOptions = [
+  { label: 'Gas', value: 'gas' },
+  { label: 'Diesel', value: 'diesel' },
+];
+
 export const lengthOptions = [
   { label: 'Under 25 ft', value: 'compact' },
   { label: '25-35 ft', value: 'mid' },
@@ -439,17 +455,6 @@ export const slideOutOptions = [
   { label: '3 Slideouts', value: '3' },
   { label: '4 Slideouts', value: '4' },
   { label: '5+ Slideouts', value: '5+' },
-];
-
-export const driveTrainOptions = [
-  { label: '4WD', value: '4wd-4-wheel-drive' },
-  { label: 'AWD', value: 'awd-all-wheel-drive' },
-  { label: 'RWD', value: 'rwd-rear-wheel-drive' },
-];
-
-export const fuelOptions = [
-  { label: 'Gas', value: 'gas' },
-  { label: 'Diesel', value: 'diesel' },
 ];
 
 export const featureOptions = [
@@ -505,19 +510,28 @@ export function locationLabelFromValue(value: string): string {
   return locationOptions.find((opt) => opt.value === value)?.label ?? '';
 }
 
-export function labelFromValue(value: string): string {
+export function labelFromValue(value: string | null | undefined): string {
+  if (!value || typeof value !== 'string') return '';
   const parts = value.split(/[-_\s]+/).filter(Boolean);
-  if (parts.length === 0) return value.trim();
+  if (parts.length === 0) return '';
   return parts.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 }
 
-export function labelFromCustomTags(customTags: string[] | undefined, key: string): string | null {
-  if (!customTags?.length) return null;
+export function labelFromCustomTags(customTags: string[] | null | undefined, key: string): string {
+  if (!customTags?.length) return '';
   const tag = customTags.find((t) => t.startsWith(`${key}:`));
-  if (!tag) return null;
+  if (!tag) return '';
   const value = tag.split(':')[1].trim();
-  if (!value) return null;
+  if (!value) return '';
   return labelFromValue(value);
+}
+
+export function unitThumbnailSrc(unit?: InventoryUnit): string {
+  if (!unit) return '/images/photos_coming_soon.jpg';
+  if (unit.thumbnails?.length) return unit.thumbnails[0]!;
+  if (unit.images?.length) return unit.images[0]!;
+  if (unit.defaultImageUrl) return unit.defaultImageUrl;
+  return '/images/photos_coming_soon.jpg';
 }
 
 export function getMakeOptions({ body }: { body?: string }) {
@@ -545,6 +559,8 @@ export function getInventoryPricing(unit: InventoryUnit) {
   };
   const firstPositive = (...values: number[]) => values.find((value) => value > 0) ?? 0;
 
+  const isTooLowToShow = Boolean(unit.isTooLowToShow);
+
   const msrp = num(unit.wI_ListPrice);
   const mapPrice = num(unit.wI_MapPrice);
   const salePrice = num(unit.wI_SalePrice);
@@ -553,14 +569,14 @@ export function getInventoryPricing(unit: InventoryUnit) {
 
   const displayPrice = firstPositive(websitePrice, salePrice, mapPrice, msrp);
   const netPrice = displayPrice > 0 && rebateAmount > 0 ? Math.max(displayPrice - rebateAmount, 0) : displayPrice;
+  const currentPrice = !isTooLowToShow && displayPrice > 0 ? (rebateAmount > 0 ? netPrice : displayPrice) : 0;
 
   const discountAmount = msrp && displayPrice && msrp > displayPrice ? msrp - displayPrice : 0;
   const savingAmount = msrp && netPrice && msrp > netPrice ? msrp - netPrice : 0;
   const percentOff = savingAmount && msrp ? Math.round((savingAmount / msrp) * 100) : 0;
 
-  const isTooLowToShow = Boolean(unit.isTooLowToShow);
-
   return {
+    isTooLowToShow,
     msrp,
     mapPrice,
     salePrice,
@@ -568,12 +584,9 @@ export function getInventoryPricing(unit: InventoryUnit) {
     rebateAmount,
     displayPrice,
     netPrice,
+    currentPrice,
     discountAmount,
     savingAmount,
     percentOff,
-
-    isTooLowToShow,
-
-    showDetailedBreakdown: Boolean(rebateAmount && displayPrice && !isTooLowToShow),
   };
 }

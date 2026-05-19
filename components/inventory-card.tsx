@@ -19,8 +19,15 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useViewProWidget } from '@/components/view-pro-widget-provider';
-import { formatPrice, formatMileage, formatSleeps, rebateEndsLabel, getInventoryPricing } from '@/lib/utils';
-import type { InventoryUnit } from '@/lib/types';
+import {
+  formatLength,
+  formatMileage,
+  formatPrice,
+  formatSleeps,
+  rebateEndsLabel,
+  getInventoryPricing,
+} from '@/lib/utils';
+import { type InventoryUnit } from '@/lib/types';
 
 export function InventoryCard({ unit }: { unit: InventoryUnit }) {
   const router = useRouter();
@@ -61,19 +68,10 @@ export function InventoryCard({ unit }: { unit: InventoryUnit }) {
     };
   }, [emblaApi, onSelect]);
 
-  const {
-    msrp,
-    rebateAmount,
-    displayPrice,
-    netPrice,
-    discountAmount,
-    savingAmount,
-    percentOff,
-    isTooLowToShow,
-    showDetailedBreakdown,
-  } = getInventoryPricing(unit);
+  const { msrp, rebateAmount, displayPrice, netPrice, discountAmount, savingAmount, percentOff, isTooLowToShow } =
+    getInventoryPricing(unit);
 
-  const rebateFootnote = showDetailedBreakdown && unit.rebate ? rebateEndsLabel(unit.rebate.enddate) : null;
+  const rebateFootnote = rebateAmount > 0 && unit.rebate ? rebateEndsLabel(unit.rebate.enddate) : null;
 
   return (
     <article
@@ -168,9 +166,9 @@ export function InventoryCard({ unit }: { unit: InventoryUnit }) {
         </div>
 
         {isTooLowToShow ? (
-          displayPrice > 0 || msrp > 0 ? (
+          displayPrice > 0 ? (
             <div className="flex-1 space-y-1">
-              {displayPrice > 0 && (msrp <= 0 || displayPrice !== msrp) ? (
+              {displayPrice > 0 && displayPrice !== msrp ? (
                 <p className="text-xl font-bold tracking-tight text-neutral-900 line-through decoration-neutral-900/75">
                   {formatPrice(displayPrice)}
                 </p>
@@ -186,7 +184,7 @@ export function InventoryCard({ unit }: { unit: InventoryUnit }) {
           )
         ) : displayPrice <= 0 ? (
           <div className="flex-1" />
-        ) : showDetailedBreakdown ? (
+        ) : rebateAmount > 0 ? (
           <div className="space-y-2">
             {msrp > 0 ? (
               <div className="flex items-baseline justify-between gap-3 text-sm">
@@ -235,7 +233,7 @@ export function InventoryCard({ unit }: { unit: InventoryUnit }) {
         ) : (
           <div className="flex-1 space-y-1">
             <p className="text-2xl font-bold text-neutral-900 tabular-nums">{formatPrice(displayPrice)}</p>
-            {msrp > displayPrice + 0.5 ? (
+            {msrp > displayPrice ? (
               <span className="text-sm">
                 {unit.wI_InventoryType === 'Used' ? 'Was' : 'MSRP'}{' '}
                 <span className="text-neutral-800 line-through">{formatPrice(msrp)}</span>
@@ -257,15 +255,15 @@ export function InventoryCard({ unit }: { unit: InventoryUnit }) {
           </div>
           <div className="flex min-w-0 items-center gap-1.5">
             <Gauge className="size-4 shrink-0 text-neutral-500" strokeWidth={2} />
-            <span className="truncate text-xs text-neutral-500">{formatMileage(unit.wI_Mileage) ?? 'N/A'}</span>
+            <span className="truncate text-xs text-neutral-500">{formatMileage(unit.wI_Mileage) || 'N/A'}</span>
           </div>
           <div className="flex min-w-0 items-center gap-1.5">
             <Ruler className="size-4 shrink-0 text-neutral-500" strokeWidth={2} />
-            <span className="truncate text-xs text-neutral-500">{unit.wI_Length} ft</span>
+            <span className="truncate text-xs text-neutral-500">{formatLength(unit.wI_Length) || 'N/A'}</span>
           </div>
           <div className="flex min-w-0 items-center gap-1.5">
             <LayoutTemplate className="size-4 shrink-0 text-neutral-500" strokeWidth={2} />
-            <span className="truncate text-xs text-neutral-500">{formatSleeps(unit.sleepsCount) ?? 'N/A'}</span>
+            <span className="truncate text-xs text-neutral-500">{formatSleeps(unit.sleepsCount) || 'N/A'}</span>
           </div>
           <div className="flex min-w-0 items-center gap-1.5">
             <Cog className="size-4 shrink-0 text-neutral-500" strokeWidth={2} />

@@ -80,7 +80,7 @@ export function SiteFooter() {
                   </a>
                 </li>
                 <li>
-                  <a href="https://recvana.com" className="group flex items-center gap-2 transition-colors">
+                  <a href="/inventory" className="group flex items-center gap-2 transition-colors">
                     <span className="border-primary text-primary flex size-10 items-center justify-center rounded-full border-2">
                       <Globe className="size-5 shrink-0" strokeWidth={2} />
                     </span>

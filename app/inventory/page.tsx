@@ -24,10 +24,10 @@ import { TradePromoCard } from '@/components/trade-promo-card';
 import { api } from '@/lib/api';
 import {
   // bodyOptions,
-  inventoryTypeOptions,
-  locationOptions,
   getMakeOptions,
   getModelOptions,
+  locationOptions,
+  inventoryTypeOptions,
   sortByOptions,
   type SortByValue,
 } from '@/lib/utils';
@@ -41,8 +41,8 @@ import {
 // const BODY_VALUES = new Set(bodyOptions.map((opt) => opt.value));
 const MAKE_VALUES = new Set(getMakeOptions({ body: 'class-b' }).map((opt) => opt.value));
 const MODEL_VALUES = new Set(getModelOptions({ body: 'class-b' }).map((opt) => opt.value));
-const INVENTORY_TYPE_VALUES = new Set(inventoryTypeOptions.map((opt) => opt.value));
 const LOCATION_VALUES = new Set(locationOptions.map((opt) => opt.value));
+const INVENTORY_TYPE_VALUES = new Set(inventoryTypeOptions.map((opt) => opt.value));
 const SORTBY_VALUES = new Set<string>(sortByOptions.map((opt) => opt.value));
 
 function parseCsvParams(searchParams: URLSearchParams, key: string, allowed: Set<string>): string[] {
@@ -138,8 +138,8 @@ async function fetchInventories(params: {
   // filterBodies: string[];
   filterMakes: string[];
   filterModels: string[];
-  filterInventoryTypes: string[];
   filterLocations: string[];
+  filterInventoryTypes: string[];
   inStockOnly: boolean | null;
   sortBy: SortByValue;
 }): Promise<{ inventories: InventoryUnit[]; pagination: InventoryPagination }> {
@@ -247,8 +247,8 @@ function buildInventoryQuery(params: {
   // filterBodies: string[];
   filterMakes: string[];
   filterModels: string[];
-  filterInventoryTypes: string[];
   filterLocations: string[];
+  filterInventoryTypes: string[];
   inStockOnly: boolean | null;
   sortBy: SortByValue;
 }): URLSearchParams {
@@ -273,8 +273,8 @@ function buildInventoryQuery(params: {
   // if (params.filterBodies.length > 0) searchParams.set('body', params.filterBodies.join(','));
   if (params.filterMakes.length > 0) searchParams.set('make', params.filterMakes.join(','));
   if (params.filterModels.length > 0) searchParams.set('model', params.filterModels.join(','));
-  if (params.filterInventoryTypes.length > 0) searchParams.set('inventoryType', params.filterInventoryTypes.join(','));
   if (params.filterLocations.length > 0) searchParams.set('location', params.filterLocations.join(','));
+  if (params.filterInventoryTypes.length > 0) searchParams.set('inventoryType', params.filterInventoryTypes.join(','));
   if (params.inStockOnly != null && params.inStockOnly === true) searchParams.set('inStockOnly', 'true');
   if (params.sortBy !== 'recommended') searchParams.set('sortBy', params.sortBy);
   return searchParams;
@@ -292,14 +292,13 @@ export default function InventoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [draftQ, setDraftQ] = useState(() => searchParams.get('q') ?? '');
-  const [draftRvType, setDraftRvType] = useState(() => searchParams.get('rvType'));
   // const [draftBodies, setDraftBodies] = useState(() => parseCsvParams(searchParams, 'body', BODY_VALUES));
   const [draftMakes, setDraftMakes] = useState(() => parseCsvParams(searchParams, 'make', MAKE_VALUES));
   const [draftModels, setDraftModels] = useState(() => parseCsvParams(searchParams, 'model', MODEL_VALUES));
+  const [draftLocations, setDraftLocations] = useState(() => parseCsvParams(searchParams, 'location', LOCATION_VALUES));
   const [draftInventoryTypes, setDraftInventoryTypes] = useState(() =>
     parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES),
   );
-  const [draftLocations, setDraftLocations] = useState(() => parseCsvParams(searchParams, 'location', LOCATION_VALUES));
 
   const skipScrollRef = useRef(true);
 
@@ -321,8 +320,8 @@ export default function InventoryPage() {
   // const filterBodies = parseCsvParams(searchParams, 'body', BODY_VALUES);
   const filterMakes = parseCsvParams(searchParams, 'make', MAKE_VALUES);
   const filterModels = parseCsvParams(searchParams, 'model', MODEL_VALUES);
-  const filterInventoryTypes = parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES);
   const filterLocations = parseCsvParams(searchParams, 'location', LOCATION_VALUES);
+  const filterInventoryTypes = parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES);
   const minLength = searchParams.get('minLength');
   const maxLength = searchParams.get('maxLength');
   const inStockOnly = searchParams.get('inStockOnly') === 'true';
@@ -332,12 +331,11 @@ export default function InventoryPage() {
 
   useEffect(() => {
     setDraftQ(searchParams.get('q') ?? '');
-    setDraftRvType(searchParams.get('rvType'));
     // setDraftBodies(parseCsvParams(searchParams, 'body', BODY_VALUES));
     setDraftMakes(parseCsvParams(searchParams, 'make', MAKE_VALUES));
     setDraftModels(parseCsvParams(searchParams, 'model', MODEL_VALUES));
-    setDraftInventoryTypes(parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES));
     setDraftLocations(parseCsvParams(searchParams, 'location', LOCATION_VALUES));
+    setDraftInventoryTypes(parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES));
   }, [inventoryQueryKey, searchParams]);
 
   useEffect(() => {
@@ -366,8 +364,8 @@ export default function InventoryPage() {
       // filterBodies: parseCsvParams(searchParams, 'body', BODY_VALUES),
       filterMakes: parseCsvParams(searchParams, 'make', MAKE_VALUES),
       filterModels: parseCsvParams(searchParams, 'model', MODEL_VALUES),
-      filterInventoryTypes: parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES),
       filterLocations: parseCsvParams(searchParams, 'location', LOCATION_VALUES),
+      filterInventoryTypes: parseCsvParams(searchParams, 'inventoryType', INVENTORY_TYPE_VALUES),
       minLength: searchParams.get('minLength'),
       maxLength: searchParams.get('maxLength'),
       inStockOnly: searchParams.get('inStockOnly') === 'true',
@@ -416,8 +414,8 @@ export default function InventoryPage() {
       // filterBodies,
       filterMakes,
       filterModels,
-      filterInventoryTypes,
       filterLocations,
+      filterInventoryTypes,
       inStockOnly,
       sortBy,
     });
@@ -446,8 +444,8 @@ export default function InventoryPage() {
     // filterBodies,
     filterMakes,
     filterModels,
-    filterInventoryTypes,
     filterLocations,
+    filterInventoryTypes,
     inStockOnly,
     sortBy,
     pathname,
@@ -471,7 +469,6 @@ export default function InventoryPage() {
 
   const applySearch = () => {
     const q = draftQ.trim() || null;
-    const rvType = draftRvType?.trim() || null;
     const next = buildInventoryQuery({
       type,
       page: 1,
@@ -493,8 +490,8 @@ export default function InventoryPage() {
       // filterBodies: draftBodies,
       filterMakes: draftMakes,
       filterModels: draftModels,
-      filterInventoryTypes: draftInventoryTypes,
       filterLocations: draftLocations,
+      filterInventoryTypes: draftInventoryTypes,
       inStockOnly,
       sortBy,
     });
@@ -524,8 +521,8 @@ export default function InventoryPage() {
       // filterBodies,
       filterMakes,
       filterModels,
-      filterInventoryTypes,
       filterLocations,
+      filterInventoryTypes,
       inStockOnly,
       sortBy: nextSort,
     });
@@ -556,8 +553,8 @@ export default function InventoryPage() {
       // filterBodies,
       filterMakes,
       filterModels,
-      filterInventoryTypes,
       filterLocations,
+      filterInventoryTypes,
       inStockOnly,
       sortBy,
     });
@@ -567,12 +564,11 @@ export default function InventoryPage() {
 
   const clearFilters = () => {
     setDraftQ('');
-    setDraftRvType(null);
     // setDraftBodies([]);
     setDraftMakes([]);
     setDraftModels([]);
-    setDraftInventoryTypes([]);
     setDraftLocations([]);
+    setDraftInventoryTypes([]);
     router.push(pathname);
   };
 

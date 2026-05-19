@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/carousel';
 import { useViewProWidget, type ViewProWidgetUser } from '@/components/view-pro-widget-provider';
 import { cn, formatMileage, formatPrice, formatSleeps, getInventoryPricing, labelFromValue } from '@/lib/utils';
-import type { InventoryUnit } from '@/lib/types';
+import { type InventoryUnit } from '@/lib/types';
 
 type SeeLiveDialogProps = {
   open: boolean;
@@ -27,14 +27,12 @@ type SeeLiveDialogProps = {
 
 function LiveCard({ unit, onSeeLive }: { unit: InventoryUnit; onSeeLive: () => void }) {
   const router = useRouter();
-  const { msrp, displayPrice, netPrice, savingAmount, isTooLowToShow, showDetailedBreakdown } =
-    getInventoryPricing(unit);
-  const currentPrice = !isTooLowToShow && displayPrice > 0 ? (showDetailedBreakdown ? netPrice : displayPrice) : null;
+  const { msrp, currentPrice, savingAmount } = getInventoryPricing(unit);
 
   const specParts = [
     unit.wI_Fuel,
-    formatMileage(unit.wI_Mileage) ?? null,
-    formatSleeps(unit.sleepsCount) ?? null,
+    formatMileage(unit.wI_Mileage) || null,
+    formatSleeps(unit.sleepsCount) || null,
   ].filter(Boolean) as string[];
   const specLine = specParts.join(' • ');
 
@@ -75,7 +73,7 @@ function LiveCard({ unit, onSeeLive }: { unit: InventoryUnit; onSeeLive: () => v
         {specLine ? <p className="mt-1 text-[11px] leading-snug text-neutral-500">{specLine}</p> : null}
 
         <div>
-          {isTooLowToShow || !currentPrice ? (
+          {!currentPrice ? (
             <p className="text-base font-bold text-neutral-900">Call for price</p>
           ) : (
             <>
@@ -83,7 +81,7 @@ function LiveCard({ unit, onSeeLive }: { unit: InventoryUnit; onSeeLive: () => v
                 <span className="text-lg font-bold tracking-tight text-neutral-900 tabular-nums">
                   {formatPrice(currentPrice)}
                 </span>
-                {msrp > currentPrice + 0.5 ? (
+                {msrp > currentPrice ? (
                   <span className="text-xs font-medium text-neutral-400 tabular-nums line-through">
                     {formatPrice(msrp)}
                   </span>

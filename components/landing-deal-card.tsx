@@ -7,31 +7,18 @@ import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useViewProWidget } from '@/components/view-pro-widget-provider';
 import { cn, formatPrice, formatMileage, formatSleeps, getInventoryPricing, labelFromValue } from '@/lib/utils';
-import type { InventoryUnit } from '@/lib/types';
+import { type InventoryUnit } from '@/lib/types';
 
 type DealBadge = { label: string; className: string };
 
-function pickDealBadge(unit: InventoryUnit, liveAvailable: boolean): DealBadge | null {
-  if (unit.inFlashSale) {
+function pickDealBadge(unit: InventoryUnit): DealBadge | null {
+  const { currentPrice } = getInventoryPricing(unit);
+
+  if (!currentPrice) {
+    return { label: 'Price drop', className: 'bg-primary text-primary-foreground' };
+  }
+  if (unit.inFlashSale || unit.isSpecialOffer) {
     return { label: 'Hot deal', className: 'bg-red-600 text-white' };
-  }
-  const { msrp, displayPrice, netPrice, savingAmount, showDetailedBreakdown, isTooLowToShow } =
-    getInventoryPricing(unit);
-  const effective = !isTooLowToShow && displayPrice > 0 ? (showDetailedBreakdown ? netPrice : displayPrice) : 0;
-  if (savingAmount > 0 && msrp > effective + 0.5) {
-    return { label: 'Price drop', className: 'bg-primary text-primary-foreground' };
-  }
-  if (unit.isSpecialOffer) {
-    return { label: 'Price drop', className: 'bg-primary text-primary-foreground' };
-  }
-  if (liveAvailable) {
-    return {
-      label: 'Live',
-      className: 'bg-emerald-600 text-white shadow-[0_0_0_1px_rgba(16,185,129,0.35)]',
-    };
-  }
-  if (unit.wI_DaysInStock <= 7) {
-    return { label: 'New', className: 'bg-sky-600 text-white' };
   }
   return null;
 }
@@ -69,15 +56,12 @@ export function LandingDealCard({ unit }: { unit: InventoryUnit }) {
     };
   }, [emblaApi, onSelect]);
 
-  const { msrp, displayPrice, netPrice, savingAmount, isTooLowToShow, showDetailedBreakdown } =
-    getInventoryPricing(unit);
-
-  const currentPrice = !isTooLowToShow && displayPrice > 0 ? (showDetailedBreakdown ? netPrice : displayPrice) : null;
+  const { msrp, currentPrice, savingAmount } = getInventoryPricing(unit);
 
   const specParts = [
     unit.wI_Body,
-    formatMileage(unit.wI_Mileage) ?? null,
-    formatSleeps(unit.sleepsCount) ?? null,
+    formatMileage(unit.wI_Mileage) || null,
+    formatSleeps(unit.sleepsCount) || null,
   ].filter(Boolean) as string[];
   const specLine = specParts.join(' • ');
 
@@ -89,7 +73,7 @@ export function LandingDealCard({ unit }: { unit: InventoryUnit }) {
     .filter((tag) => tag.key && tag.value && tag.key !== 'promotions')
     .map((tag) => labelFromValue(tag.value));
 
-  const badge = pickDealBadge(unit, isAvailable);
+  const badge = pickDealBadge(unit);
 
   return (
     <article
@@ -146,7 +130,7 @@ export function LandingDealCard({ unit }: { unit: InventoryUnit }) {
         {specLine ? <p className="text-xs leading-snug text-neutral-500 sm:text-sm">{specLine}</p> : null}
 
         <div className="min-h-12">
-          {isTooLowToShow || !currentPrice ? (
+          {!currentPrice ? (
             <p className="text-xl font-bold text-neutral-900">Call for price</p>
           ) : (
             <>
@@ -154,7 +138,7 @@ export function LandingDealCard({ unit }: { unit: InventoryUnit }) {
                 <span className="text-2xl font-bold tracking-tight text-neutral-900 tabular-nums">
                   {formatPrice(currentPrice)}
                 </span>
-                {msrp > currentPrice + 0.5 ? (
+                {msrp > currentPrice ? (
                   <span className="text-sm font-medium text-neutral-400 tabular-nums line-through">
                     {formatPrice(msrp)}
                   </span>
@@ -167,6 +151,7 @@ export function LandingDealCard({ unit }: { unit: InventoryUnit }) {
               ) : null}
             </>
           )}
+
           {tags.length > 0 ? (
             <div className="mt-4 flex flex-wrap gap-2">
               {tags.map((tag) => (

@@ -8,13 +8,14 @@ import {
   ArrowRight,
   Bus,
   Car,
-  CheckCircle2,
+  Check,
   ChevronLeft,
   ChevronRight,
   Cog,
+  Download,
   Fuel,
   Gauge,
-  MessageCircle,
+  Maximize,
   Ruler,
   ShieldCheck,
   ShoppingBag,
@@ -33,11 +34,12 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-// import { AiChatDialog } from '@/components/ai-chat-dialog';
 import { ContactDialog } from '@/components/contact-dialog';
+import { TextUsDialog } from '@/components/text-us-dialog';
 import { useViewProWidget, type ViewProWidgetUser } from '@/components/view-pro-widget-provider';
 import {
   cn,
+  formatLength,
   formatMileage,
   formatSleeps,
   formatPrice,
@@ -45,7 +47,7 @@ import {
   labelFromCustomTags,
   getInventoryPricing,
 } from '@/lib/utils';
-import type { InventoryUnit } from '@/lib/types';
+import { type InventoryUnit } from '@/lib/types';
 
 const APR_RATE = 7.99;
 const PAYMENT_ESTIMATE_TERM_MONTHS = 240;
@@ -91,7 +93,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [floorplanDialogOpen, setFloorplanDialogOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  // const [aiChatDialogOpen, setAiChatDialogOpen] = useState(false);
+  const [textUsOpen, setTextUsOpen] = useState(false);
 
   const [slideIndex, setSlideIndex] = useState(0);
   const [canScrollPrev, setCanScrollPrev] = useState(false);
@@ -147,18 +149,20 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
     };
   }, [unit.title]);
 
-  const { msrp, displayPrice, savingAmount, isTooLowToShow, showDetailedBreakdown } = getInventoryPricing(unit);
+  const { msrp, currentPrice, savingAmount, rebateAmount } = getInventoryPricing(unit);
+  const rebateFootnote = rebateAmount && unit.rebate ? rebateEndsLabel(unit.rebate.enddate) : null;
+  const fullBrochureUrl = unit.fullBrochure?.trim();
+  const msrpUrl = unit.msrp?.trim();
 
-  const rebateFootnote = showDetailedBreakdown && unit.rebate ? rebateEndsLabel(unit.rebate.enddate) : null;
   const chassisLabel = labelFromCustomTags(unit.customTags, 'chassis');
   const rvTypeLabel = labelFromCustomTags(unit.customTags, 'rvType');
   const driveTrainLabel = labelFromCustomTags(unit.customTags, 'driveTrain');
   const sleepsLabel = formatSleeps(unit.sleepsCount);
 
   useEffect(() => {
-    setFinancePrice(Math.round(displayPrice));
-    setFinanceDown(Math.round(displayPrice * 0.1));
-  }, [displayPrice, unit.id]);
+    setFinancePrice(Math.round(currentPrice));
+    setFinanceDown(Math.round(currentPrice * 0.1));
+  }, [currentPrice, unit.id]);
 
   const downPayment = Math.min(financeDown, financePrice);
   const principal = Math.max(0, financePrice - downPayment);
@@ -173,57 +177,15 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
     .filter(Boolean)
     .join(' • ');
 
-  const loveParagraph = (() => {
-    const bits: string[] = [`${unit.title} is built for adventure.`];
-    const withParts: string[] = [];
-    if (driveTrainLabel) withParts.push(`${driveTrainLabel.toLowerCase()} drive`);
-    if (unit.wI_Fuel) withParts.push(`a powerful ${unit.wI_Fuel.toLowerCase()} engine`);
-    if (unit.wI_Length) withParts.push(`a rugged yet refined ${unit.wI_Length} ft interior`);
-    if (withParts.length > 0) {
-      const joined =
-        withParts.length === 1
-          ? withParts[0]
-          : withParts.length === 2
-            ? `${withParts[0]} and ${withParts[1]}`
-            : `${withParts.slice(0, -1).join(', ')}, and ${withParts[withParts.length - 1]}`;
-      bits.push(` With ${joined}, it's ready to take you anywhere in comfort and style.`);
-    } else {
-      bits.push(` It's ready to take you anywhere in comfort and style.`);
-    }
-    return bits.join('');
-  })();
-
-  const overviewBullets = useMemo(() => {
-    const fromTags = unit.customTags
-      .map((t) => {
-        const i = t.indexOf(':');
-        if (i <= 0) return null;
-        const key = t.slice(0, i).trim().toLowerCase();
-        if (key === 'promotions') return null;
-        const val = t.slice(i + 1).trim();
-        if (!val) return null;
-        return val.replace(/[-_]/g, ' ');
-      })
-      .filter((x): x is string => Boolean(x))
-      .slice(0, 8);
-    if (fromTags.length >= 4) return fromTags;
-    return [
-      'Live video walkthrough with a product specialist',
-      'Real inventory — updated in real time',
-      'Transparent pricing and financing options',
-      'Nationwide delivery available',
-    ];
-  }, [unit.customTags]);
-
   const specs: { icon: typeof Gauge; label: string; value: string }[] = [
-    { icon: Bus, label: 'RV Type', value: rvTypeLabel ?? '—' },
-    { icon: Car, label: 'Chassis', value: chassisLabel ?? '—' },
-    { icon: Ruler, label: 'Length', value: unit.wI_Length ? `${unit.wI_Length} ft` : '—' },
-    { icon: Gauge, label: 'Sleeps', value: formatSleeps(unit.sleepsCount) ?? '—' },
-    { icon: Gauge, label: 'Mileage', value: formatMileage(unit.wI_Mileage) ?? '—' },
-    { icon: Cog, label: 'Engine', value: unit.wI_Engine?.trim() ? unit.wI_Engine : '—' },
+    { icon: Bus, label: 'RV Type', value: rvTypeLabel || '—' },
+    { icon: Car, label: 'Chassis', value: chassisLabel || '—' },
+    { icon: Ruler, label: 'Length', value: formatLength(unit.wI_Length) || '—' },
+    { icon: Gauge, label: 'Sleeps', value: formatSleeps(unit.sleepsCount) || '—' },
+    { icon: Gauge, label: 'Mileage', value: formatMileage(unit.wI_Mileage) || '—' },
+    { icon: Cog, label: 'Engine', value: unit.wI_Engine || '—' },
     { icon: Fuel, label: 'Fuel Type', value: unit.wI_Fuel || '—' },
-    { icon: Truck, label: 'Drivetrain', value: driveTrainLabel ?? '—' },
+    { icon: Truck, label: 'Drive Train', value: driveTrainLabel || '—' },
   ];
 
   return (
@@ -346,7 +308,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             {quickHeroSpecs && <p className="mt-2 text-sm text-neutral-600 md:text-base">{quickHeroSpecs}</p>}
           </div>
 
-          {isTooLowToShow ? (
+          {!currentPrice ? (
             <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4 text-center">
               <p className="text-sm font-semibold text-neutral-800">Call for price</p>
               <p className="text-muted-foreground mt-1 text-sm">Our price is too low to advertise online.</p>
@@ -355,20 +317,47 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             <div className="space-y-2">
               <div className="flex flex-wrap items-end gap-3">
                 <p className="text-4xl font-bold tracking-tight text-neutral-900 tabular-nums sm:text-[2.75rem]">
-                  {displayPrice > 0 ? formatPrice(displayPrice) : '—'}
+                  {formatPrice(currentPrice)}
                 </p>
-                {msrp > 0 && msrp > displayPrice ? (
+                {msrp > currentPrice ? (
                   <p className="text-lg text-neutral-500 tabular-nums line-through">{formatPrice(msrp)}</p>
                 ) : null}
               </div>
-              {savingAmount > 0 && !isTooLowToShow ? (
+              {savingAmount > 0 ? (
                 <p className="text-base font-semibold text-emerald-600">Save {formatPrice(savingAmount)}</p>
               ) : null}
               {rebateFootnote ? <p className="text-muted-foreground text-xs">{rebateFootnote}</p> : null}
             </div>
           )}
 
-          {!isTooLowToShow && displayPrice > 0 ? (
+          {fullBrochureUrl || msrpUrl ? (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              {fullBrochureUrl ? (
+                <a
+                  href={fullBrochureUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-neutral-300 bg-transparent px-4 py-3 text-xs font-bold tracking-wide text-neutral-900 uppercase transition hover:bg-neutral-50"
+                >
+                  Full Brochure
+                  <Download className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+                </a>
+              ) : null}
+              {msrpUrl ? (
+                <a
+                  href={msrpUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-md border border-neutral-300 bg-transparent px-4 py-3 text-xs font-bold tracking-wide text-neutral-900 uppercase transition hover:bg-neutral-50"
+                >
+                  MSRP
+                  <Download className="size-4 shrink-0" strokeWidth={2} aria-hidden />
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
+          {currentPrice ? (
             <button
               type="button"
               onClick={() => setContactOpen(true)}
@@ -391,7 +380,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             </button>
           ) : null}
 
-          {isAvailable ? (
+          {isAvailable && (
             <button
               type="button"
               onClick={open}
@@ -403,33 +392,21 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
                 <p className="text-xs text-white">Talk to a specialist now</p>
               </div>
             </button>
-          ) : null}
+          )}
 
-          {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {isAvailable && (
             <button
               type="button"
-              onClick={() => setAiChatDialogOpen(true)}
+              onClick={() => setTextUsOpen(true)}
               className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
             >
-              <MessageCircle className="size-5 shrink-0" strokeWidth={2} aria-hidden />
+              <Smartphone className="size-5 shrink-0" strokeWidth={2} aria-hidden />
               <div className="text-left">
-                <p className="text-sm font-bold text-neutral-900">Chat Now</p>
-                <p className="text-xs text-neutral-600">Live support</p>
+                <p className="text-sm font-bold text-neutral-900">Text Us</p>
+                <p className="text-xs text-neutral-600">Fast response</p>
               </div>
             </button>
-          </div> */}
-
-          <button
-            type="button"
-            onClick={() => setContactOpen(true)}
-            className="flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
-          >
-            <Smartphone className="size-5 shrink-0" strokeWidth={2} aria-hidden />
-            <div className="text-left">
-              <p className="text-sm font-bold text-neutral-900">Text Us</p>
-              <p className="text-xs text-neutral-600">Fast response</p>
-            </div>
-          </button>
+          )}
         </div>
       </div>
 
@@ -495,7 +472,6 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             {(
               [
                 ['overview', 'Overview'],
-                ['features', 'Features'],
                 ['floorplan', 'Floorplan'],
                 ['specs', 'Specs'],
                 ['compare', 'Compare'],
@@ -515,51 +491,38 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
           </TabsList>
 
           <TabsContent value="overview" className="mt-0 space-y-6">
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
-              <div className="min-w-0 space-y-4">
-                <h2 className="text-xl font-bold text-neutral-900 md:text-2xl">
-                  Adventure-ready. Off-grid capable. Built to roam.
-                </h2>
-                <p className="text-[15px] leading-relaxed text-neutral-700">{loveParagraph}</p>
-                <ul className="space-y-2.5">
-                  {overviewBullets.map((line, i) => (
-                    <li key={`${i}-${line.slice(0, 24)}`} className="flex gap-2 text-sm text-neutral-800">
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-600" strokeWidth={2} aria-hidden />
-                      <span>{line}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('features')}
-                  className="inline-flex items-center gap-2 rounded-lg border border-neutral-900 bg-white px-4 py-2.5 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
-                >
-                  View Full Features
-                  <ArrowRight className="size-4 shrink-0" aria-hidden />
-                </button>
-              </div>
-              <div className="min-w-0">
-                <div className="overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
-                  <div className="relative aspect-4/3 w-full p-3">
-                    <img src={floorplanSrc} alt="Floorplan" className="h-full w-full object-contain" />
+            {(unit.richText || unit.features.length > 0) && (
+              <div className="min-w-0 space-y-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4 sm:p-6 lg:p-8">
+                {unit.richText ? (
+                  <div
+                    className="prose prose-sm max-w-none text-neutral-700"
+                    dangerouslySetInnerHTML={{ __html: unit.richText }}
+                  />
+                ) : null}
+
+                {unit.features.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-primary text-xl font-bold md:self-center lg:text-[1.75rem]">
+                      Standard Features May Include:
+                    </h2>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {unit.features.map((feature) => (
+                        <div key={feature} className="flex items-center gap-2">
+                          <Check className="size-4 shrink-0 text-green-600" strokeWidth={4} aria-hidden />
+                          <p className="text-xs font-medium text-neutral-800 sm:text-sm">{feature}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFloorplanDialogOpen(true)}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white py-2.5 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
-                >
-                  View 360° Tour
-                  <span className="text-xs font-normal text-neutral-500">(Floorplan)</span>
-                </button>
+                )}
               </div>
-            </div>
+            )}
 
             <TabPanelCard
               title="Why shoppers choose us"
               contentClassName="space-y-4"
               footer={
-                <div className="bg-[#F8F9FA] p-4 sm:px-6 sm:py-6">
+                <div className="bg-neutral-50 p-4 sm:p-6">
                   <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-6 xl:gap-10">
                     <div className="flex gap-4 lg:min-w-0 lg:flex-1">
                       <ShoppingBag className="size-10 shrink-0 text-neutral-700" strokeWidth={1.5} aria-hidden />
@@ -595,6 +558,25 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
             </TabPanelCard>
           </TabsContent>
 
+          <TabsContent value="floorplan" className="mt-0">
+            <TabPanelCard title="Floorplan">
+              <div className="relative overflow-hidden rounded-lg bg-neutral-50">
+                <img
+                  src={floorplanSrc}
+                  alt="RV floorplan diagram"
+                  className="mx-auto max-h-[420px] w-full object-contain p-6"
+                />
+                <button
+                  type="button"
+                  onClick={() => setFloorplanDialogOpen(true)}
+                  className="absolute top-4 right-4 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-neutral-300 bg-white p-2 text-sm font-bold text-neutral-900 transition hover:bg-neutral-50"
+                >
+                  <Maximize className="size-5 shrink-0" strokeWidth={2} aria-hidden />
+                </button>
+              </div>
+            </TabPanelCard>
+          </TabsContent>
+
           <TabsContent value="specs" className="mt-0 space-y-6">
             <TabPanelCard title="Specifications">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -611,35 +593,6 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
                   </div>
                 ))}
               </div>
-            </TabPanelCard>
-          </TabsContent>
-
-          <TabsContent value="features" className="mt-0">
-            <TabPanelCard title="Features & options">
-              <p>
-                Full feature packages vary by chassis and factory options. Connect live with a specialist to walk
-                through interior storage, electrical systems, climate, and optional equipment on this unit.
-              </p>
-              <ul className="mt-5 list-disc space-y-2.5 pl-5 text-sm">
-                <li>Walk the interior with a live video tour</li>
-                <li>Confirm options and packages on this stock number</li>
-                <li>Ask about delivery, orientation, and service</li>
-              </ul>
-            </TabPanelCard>
-          </TabsContent>
-
-          <TabsContent value="floorplan" className="mt-0">
-            <TabPanelCard title="Floorplan">
-              <div className="overflow-hidden rounded-lg bg-[#F8F9FA]">
-                <img
-                  src={floorplanSrc}
-                  alt="RV floorplan diagram"
-                  className="mx-auto max-h-[420px] w-full object-contain p-6"
-                />
-              </div>
-              <p className="mt-4 text-sm text-neutral-600">
-                Detailed diagrams may be available from the manufacturer for this model.
-              </p>
             </TabPanelCard>
           </TabsContent>
 
@@ -664,13 +617,13 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
       <Dialog open={floorplanDialogOpen} onOpenChange={setFloorplanDialogOpen}>
         <DialogContent
           showCloseButton
-          className="data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 fixed inset-0 top-0 left-0 z-50 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-black p-0 shadow-none duration-200 sm:max-w-none [&>button]:top-3 [&>button]:right-4 [&>button]:z-30 [&>button]:text-white [&>button]:opacity-70 hover:[&>button]:opacity-100"
+          className="fixed inset-0 z-50 flex h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 flex-col rounded-none border-0 bg-black p-0 sm:max-w-none [&>button]:text-white"
         >
           <DialogHeader className="sr-only">
             <DialogTitle>Floorplan</DialogTitle>
             <DialogDescription>Full screen floorplan image for {unit.title}</DialogDescription>
           </DialogHeader>
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-3 sm:p-6">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-3 sm:p-4">
             <img
               src={floorplanSrc}
               alt={`Floorplan for ${unit.title}`}
@@ -681,7 +634,7 @@ export function InventoryDetail({ unit }: { unit: InventoryUnit }) {
       </Dialog>
 
       <ContactDialog open={contactOpen} onOpenChange={setContactOpen} unit={unit} />
-      {/* <AiChatDialog open={aiChatDialogOpen} onOpenChange={setAiChatDialogOpen} /> */}
+      <TextUsDialog open={textUsOpen} onOpenChange={setTextUsOpen} unit={unit} />
     </div>
   );
 }

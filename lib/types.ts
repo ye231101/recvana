@@ -4,14 +4,19 @@ export interface InventoryUnit {
   id: string;
   orderCol: number;
   stockNumber: string;
+  vin?: string | null;
+  fullBrochure?: string | null;
+  msrp?: string | null;
   location: string;
   title: string;
   wI_Body: string;
   wI_Make: string;
-  wI_Model: string
-  wI_Configuration: string
+  wI_Model: string;
+  wI_Configuration: string;
   wI_Year: number;
   customTags: string[];
+  features: string[];
+  richText?: string | null;
   imageCloudinaryIds?: string[];
   images?: string[];
   thumbnails?: string[];
@@ -46,6 +51,9 @@ export interface InventoryItem {
   id: string;
   order_col: number;
   stock_number: string;
+  vin?: string | null;
+  full_brochure?: string | null;
+  msrp?: string | null;
   location: string;
   title: string;
   wi_body: string;
@@ -54,10 +62,12 @@ export interface InventoryItem {
   wi_configuration: string;
   wi_year: number;
   custom_tags?: string[] | null;
+  features?: string[] | null;
+  rich_text?: string | null;
   image_cloudinary_ids?: string[] | null;
   images?: string[] | null;
-  default_image_url?: string | null;
   thumbnails?: string[] | null;
+  default_image_url?: string | null;
   wi_inventory_type: string;
   wi_engine?: string | null;
   wi_fuel: string;
@@ -122,6 +132,9 @@ export function mapInventoryItem(r: InventoryItem): InventoryUnit {
     id: r.id,
     orderCol: r.order_col,
     stockNumber: r.stock_number,
+    vin: r.vin ?? undefined,
+    fullBrochure: r.full_brochure ?? undefined,
+    msrp: r.msrp ?? undefined,
     location: locationLabelFromValue(r.location),
     title: r.title,
     wI_Body: labelFromValue(r.wi_body),
@@ -130,6 +143,8 @@ export function mapInventoryItem(r: InventoryItem): InventoryUnit {
     wI_Configuration: labelFromValue(r.wi_configuration),
     wI_Year: r.wi_year,
     customTags: r.custom_tags ?? [],
+    features: r.features ?? [],
+    richText: r.rich_text ?? undefined,
     imageCloudinaryIds: r.image_cloudinary_ids ?? [],
     images: r.images ?? [],
     thumbnails: r.thumbnails ?? [],
@@ -160,7 +175,7 @@ export interface ChatGPTResponse {
   code: number;
   message: string;
   data: {
-    mode?: 'general' | 'rag';
+    mode?: 'list' | 'rag' | 'general';
     intent?: string;
     reply?: string;
     inventories?: InventoryItem[];

@@ -1,40 +1,43 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowRight,
-  Search,
-  Video,
-  MessageCircle,
-  Sparkles,
-  Camera,
-  SlidersHorizontal,
   Award,
-  Star,
-  MapPin,
-  PiggyBank,
-  Cog,
-  ShieldCheck,
-  ChevronDown,
+  Calendar,
+  Camera,
   Check,
+  ChevronDown,
+  CircleDollarSign,
+  Cog,
+  MapPin,
+  MessageCircle,
+  PiggyBank,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  SlidersHorizontal,
+  Sparkles,
+  Star,
+  Tag,
+  Van,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-// import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import { Spinner } from '@/components/ui/spinner';
 import { FilterMultiSelect } from '@/components/filter-multi-select';
+import { FilterSingleSelect } from '@/components/filter-single-select';
 import { FilterPriceSelect } from '@/components/filter-price-select';
 import { LocationMultiSelect } from '@/components/location-multi-select';
 import { SeeLiveDialog } from '@/components/see-live-dialog';
 import { ContactDialog } from '@/components/contact-dialog';
 import { MoreFiltersDialog, type MoreFiltersApplyPayload } from '@/components/more-filters-dialog';
-import { AiSearchDialog, type AiSearchApplyPayload } from '@/components/ai-search-dialog';
-// import { AiChatDialog } from '@/components/ai-chat-dialog';
 import { LandingDealCard } from '@/components/landing-deal-card';
-import { useViewProWidget } from '@/components/view-pro-widget-provider';
+import { useViewProWidget, type ViewProWidgetUser } from '@/components/view-pro-widget-provider';
 import { api } from '@/lib/api';
 import {
   mapInventoryItem,
@@ -42,7 +45,7 @@ import {
   type InventoryPagination,
   type InventoryUnit,
 } from '@/lib/types';
-import { cn, getMakeOptions, maxPriceOptions } from '@/lib/utils';
+import { cn, getMakeOptions, getModelOptions, inventoryTypeOptions, maxPriceOptions } from '@/lib/utils';
 
 async function fetchDealsInventories(): Promise<{ inventories: InventoryUnit[]; pagination: InventoryPagination }> {
   const res = (await api.get('inventory', {
@@ -60,64 +63,74 @@ async function fetchDealsInventories(): Promise<{ inventories: InventoryUnit[]; 
   };
 }
 
-type HomeSearchTab = 'inventory' | 'ai' | 'live';
+const YEAR_MIN = 2005;
+const YEAR_MAX = new Date().getFullYear() + 1;
+
+function yearSelectItems(): number[] {
+  const out: number[] = [];
+  for (let y = YEAR_MAX; y >= YEAR_MIN; y--) out.push(y);
+  return out;
+}
 
 export default function HomePage() {
   const router = useRouter();
   const { isAvailable, users, open } = useViewProWidget();
-  const [searchTab, setSearchTab] = useState<HomeSearchTab>('inventory');
   const [filterMakes, setFilterMakes] = useState<string[]>([]);
+  const [filterModels, setFilterModels] = useState<string[]>([]);
+  const [filterLocations, setFilterLocations] = useState<string[]>([]);
   const [filterRvTypes, setFilterRvTypes] = useState<string[]>([]);
-  const [filterSleeps, setFilterSleeps] = useState<string | null>(null);
   const [filterDriveTrains, setFilterDriveTrains] = useState<string[]>([]);
   const [filterFuels, setFilterFuels] = useState<string[]>([]);
+  const [filterInventoryTypes, setFilterInventoryTypes] = useState<string[]>([]);
   const [filterFeatures, setFilterFeatures] = useState<string[]>([]);
+  const [filterSleeps, setFilterSleeps] = useState<string | null>(null);
   const [filterMinYear, setFilterMinYear] = useState<string | null>(null);
   const [filterMaxYear, setFilterMaxYear] = useState<string | null>(null);
   const [filterMinPrice, setFilterMinPrice] = useState<number | null>(null);
   const [filterMaxPrice, setFilterMaxPrice] = useState<number | null>(null);
   const [filterMinMileage, setFilterMinMileage] = useState<number | null>(null);
   const [filterMaxMileage, setFilterMaxMileage] = useState<number | null>(null);
-  const [filterLocations, setFilterLocations] = useState<string[]>([]);
-  const [keyword, setKeyword] = useState('');
+  const [inventoryMatchTotal, setInventoryMatchTotal] = useState<number | null>(null);
   const [seeLiveDialogOpen, setSeeLiveDialogOpen] = useState(false);
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
-  const [aiSearchDialogOpen, setAiSearchDialogOpen] = useState(false);
-  // const [aiChatDialogOpen, setAiChatDialogOpen] = useState(false);
 
   const submitSearch = useCallback(() => {
     const sp = new URLSearchParams();
     if (filterMakes.length > 0) sp.set('make', filterMakes.join(','));
+    if (filterModels.length > 0) sp.set('model', filterModels.join(','));
+    if (filterLocations.length > 0) sp.set('location', filterLocations.join(','));
     if (filterRvTypes.length > 0) sp.set('rvType', filterRvTypes.join(','));
-    if (filterSleeps) sp.set('sleeps', filterSleeps);
     if (filterDriveTrains.length > 0) sp.set('driveTrain', filterDriveTrains.join(','));
     if (filterFuels.length > 0) sp.set('fuel', filterFuels.join(','));
     if (filterFeatures.length > 0) sp.set('feature', filterFeatures.join(','));
+    if (filterInventoryTypes.length > 0) sp.set('inventoryType', filterInventoryTypes.join(','));
+    if (filterSleeps) sp.set('sleeps', filterSleeps);
     if (filterMinYear) sp.set('minYear', filterMinYear);
     if (filterMaxYear) sp.set('maxYear', filterMaxYear);
     if (filterMinPrice) sp.set('minPrice', filterMinPrice.toString());
     if (filterMaxPrice) sp.set('maxPrice', filterMaxPrice.toString());
     if (filterMinMileage) sp.set('minMileage', filterMinMileage.toString());
     if (filterMaxMileage) sp.set('maxMileage', filterMaxMileage.toString());
-    if (filterLocations.length > 0) sp.set('location', filterLocations.join(','));
     const qs = sp.toString();
     router.push(qs ? `/inventory?${qs}` : '/inventory');
   }, [
     router,
     filterMakes,
+    filterModels,
+    filterLocations,
     filterRvTypes,
-    filterSleeps,
     filterDriveTrains,
     filterFuels,
     filterFeatures,
+    filterInventoryTypes,
+    filterSleeps,
     filterMinYear,
     filterMaxYear,
     filterMinPrice,
     filterMaxPrice,
     filterMinMileage,
     filterMaxMileage,
-    filterLocations,
   ]);
 
   const applyMoreFilters = useCallback(
@@ -127,13 +140,17 @@ export default function HomePage() {
         setFilterMakes(payload.makes);
         sp.set('make', payload.makes.join(','));
       }
+      if (payload.models && payload.models.length > 0) {
+        setFilterModels(payload.models);
+        sp.set('model', payload.models.join(','));
+      }
+      if (payload.locations && payload.locations.length > 0) {
+        setFilterLocations(payload.locations);
+        sp.set('location', payload.locations.join(','));
+      }
       if (payload.rvTypes && payload.rvTypes.length > 0) {
         setFilterRvTypes(payload.rvTypes);
         sp.set('rvType', payload.rvTypes.join(','));
-      }
-      if (payload.sleeps) {
-        setFilterSleeps(payload.sleeps);
-        sp.set('sleeps', payload.sleeps);
       }
       if (payload.driveTrains && payload.driveTrains.length > 0) {
         setFilterDriveTrains(payload.driveTrains);
@@ -143,9 +160,17 @@ export default function HomePage() {
         setFilterFuels(payload.fuels);
         sp.set('fuel', payload.fuels.join(','));
       }
+      if (payload.inventoryTypes && payload.inventoryTypes.length > 0) {
+        setFilterInventoryTypes(payload.inventoryTypes);
+        sp.set('inventoryType', payload.inventoryTypes.join(','));
+      }
       if (payload.features && payload.features.length > 0) {
         setFilterFeatures(payload.features);
         sp.set('feature', payload.features.join(','));
+      }
+      if (payload.sleeps) {
+        setFilterSleeps(payload.sleeps);
+        sp.set('sleeps', payload.sleeps);
       }
       if (payload.minYear) {
         setFilterMinYear(payload.minYear);
@@ -171,53 +196,11 @@ export default function HomePage() {
         setFilterMaxMileage(payload.maxMileage);
         sp.set('maxMileage', payload.maxMileage.toString());
       }
-      if (payload.locations && payload.locations.length > 0) {
-        setFilterLocations(payload.locations);
-        sp.set('location', payload.locations.join(','));
-      }
       const qs = sp.toString();
       router.push(qs ? `/inventory?${qs}` : '/inventory');
     },
     [router],
   );
-
-  const applyAiSearch = useCallback(
-    (payload: AiSearchApplyPayload) => {
-      const sp = new URLSearchParams();
-      if (payload.q) {
-        setKeyword(payload.q.trim());
-        sp.set('q', payload.q.trim());
-      }
-      if (payload.minPrice) {
-        setFilterMinPrice(payload.minPrice);
-        sp.set('minPrice', payload.minPrice.toString());
-      }
-      if (payload.sleeps) {
-        setFilterSleeps(payload.sleeps);
-        sp.set('sleeps', payload.sleeps);
-      }
-      if (payload.driveTrains && payload.driveTrains.length > 0) {
-        setFilterDriveTrains(payload.driveTrains);
-        sp.set('driveTrain', payload.driveTrains.join(','));
-      }
-      if (payload.features && payload.features.length > 0) {
-        setFilterFeatures(payload.features);
-        sp.set('feature', payload.features.join(','));
-      }
-      if (payload.inStockOnly) {
-        sp.set('inStockOnly', payload.inStockOnly.toString());
-      }
-      const qs = sp.toString();
-      router.push(qs ? `/inventory?${qs}` : '/inventory');
-    },
-    [router],
-  );
-
-  useEffect(() => {
-    if (!isAvailable && searchTab === 'live') {
-      setSearchTab('inventory');
-    }
-  }, [isAvailable, searchTab]);
 
   const [units, setUnits] = useState<InventoryUnit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -243,6 +226,93 @@ export default function HomePage() {
     return () => {
       ignore = true;
     };
+  }, []);
+
+  const yearOptions = useMemo<{ label: string; value: string }[]>(
+    () => yearSelectItems().map((y) => ({ label: String(y), value: String(y) })),
+    [],
+  );
+
+  const filterYearValue = filterMinYear && filterMaxYear && filterMinYear === filterMaxYear ? filterMinYear : null;
+
+  const apiQuery = useMemo(() => {
+    const query: Record<string, string | number> = {
+      currentPage: 1,
+      perPage: 1,
+      body: 'class-b',
+    };
+    if (filterMakes.length > 0) query.make = filterMakes.join(',');
+    if (filterModels.length > 0) query.model = filterModels.join(',');
+    if (filterLocations.length > 0) query.location = filterLocations.join(',');
+    if (filterRvTypes.length > 0) query.rvType = filterRvTypes.join(',');
+    if (filterDriveTrains.length > 0) query.driveTrain = filterDriveTrains.join(',');
+    if (filterFuels.length > 0) query.fuel = filterFuels.join(',');
+    if (filterInventoryTypes.length > 0) query.inventoryType = filterInventoryTypes.join(',');
+    if (filterFeatures.length > 0) query.features = filterFeatures.join(',');
+    if (filterSleeps) query.sleeps = filterSleeps;
+    if (filterMinYear) query.minYear = filterMinYear;
+    if (filterMaxYear) query.maxYear = filterMaxYear;
+    if (filterMinPrice) query.minPrice = filterMinPrice;
+    if (filterMaxPrice) query.maxPrice = filterMaxPrice;
+    if (filterMinMileage) query.minMileage = filterMinMileage;
+    if (filterMaxMileage) query.maxMileage = filterMaxMileage;
+    return query;
+  }, [
+    filterMakes,
+    filterModels,
+    filterLocations,
+    filterRvTypes,
+    filterDriveTrains,
+    filterFuels,
+    filterInventoryTypes,
+    filterFeatures,
+    filterSleeps,
+    filterMinYear,
+    filterMaxYear,
+    filterMinPrice,
+    filterMaxPrice,
+    filterMinMileage,
+    filterMaxMileage,
+  ]);
+
+  useEffect(() => {
+    let ignore = false;
+    const tid = window.setTimeout(() => {
+      api
+        .get('inventory', { params: apiQuery })
+        .then((res) => {
+          if (ignore) return;
+          const data = res as unknown as InventoryListResponse;
+          setInventoryMatchTotal(data.data.pagination.total);
+        })
+        .catch(() => {
+          if (ignore) return;
+          setInventoryMatchTotal(null);
+        });
+    }, 300);
+
+    return () => {
+      ignore = true;
+      window.clearTimeout(tid);
+    };
+  }, [apiQuery]);
+
+  const clearHeroFilters = useCallback(() => {
+    setFilterMakes([]);
+    setFilterModels([]);
+    setFilterLocations([]);
+    setFilterRvTypes([]);
+    setFilterDriveTrains([]);
+    setFilterFuels([]);
+    setFilterInventoryTypes([]);
+    setFilterFeatures([]);
+    setFilterSleeps(null);
+    setFilterMinYear(null);
+    setFilterMaxYear(null);
+    setFilterMinPrice(null);
+    setFilterMaxPrice(null);
+    setFilterMinMileage(null);
+    setFilterMaxMileage(null);
   }, []);
 
   return (
@@ -296,8 +366,9 @@ export default function HomePage() {
                 See it live. Drive it home.
               </span>
             </div>
-            <div className="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-              {isAvailable && (
+
+            {isAvailable && (
+              <div className="mt-6 flex w-full flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                 <button
                   type="button"
                   onClick={() => setSeeLiveDialogOpen(true)}
@@ -309,8 +380,6 @@ export default function HomePage() {
                     <span className="text-xs tracking-wide text-white uppercase">Instant live walk-through</span>
                   </div>
                 </button>
-              )}
-              {isAvailable && (
                 <button
                   type="button"
                   onClick={() => setContactDialogOpen(true)}
@@ -322,250 +391,238 @@ export default function HomePage() {
                     <span className="text-xs tracking-wide text-white uppercase">We reply fast</span>
                   </div>
                 </button>
-              )}
-            </div>
+              </div>
+            )}
+
+            {isAvailable && (
+              <div className="mt-4 flex w-full max-w-xl flex-col gap-3 sm:mt-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  {users.length > 0 ? (
+                    <div className="relative flex shrink-0">
+                      {users.slice(0, 3).map((user: ViewProWidgetUser, i: number) => (
+                        <div
+                          key={user.username}
+                          className={cn(
+                            'relative shrink-0 rounded-full border-2 border-white',
+                            i > 0 && '-ml-2',
+                            i === 0 && 'z-10',
+                            i === 1 && 'z-20',
+                            i === 2 && 'z-30',
+                          )}
+                        >
+                          <Image
+                            src={`/viewpro/public/avatars/${user.avatar}`}
+                            alt=""
+                            width={48}
+                            height={48}
+                            className="size-10 rounded-full object-cover sm:size-12"
+                          />
+                          {i === Math.min(users.length, 3) - 1 && (
+                            <span
+                              className="absolute -right-0.5 -bottom-0.5 z-40 size-2.5 rounded-full border-2 border-white bg-emerald-400 sm:size-3"
+                              aria-hidden
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="relative size-10 shrink-0 overflow-hidden rounded-full border-2 border-white sm:size-12">
+                      <Image src="/images/robot.png" alt="" fill sizes="48px" className="object-cover" />
+                      <span
+                        className="absolute -right-0.5 -bottom-0.5 z-10 size-2.5 rounded-full border-2 border-white bg-emerald-400 sm:size-3"
+                        aria-hidden
+                      />
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-extrabold tracking-wide text-black uppercase sm:text-sm">
+                      {users.length > 0
+                        ? `${users.length} ${users.length === 1 ? 'specialist' : 'specialists'} online`
+                        : 'Specialists on standby'}
+                    </p>
+                    <p className="mt-0.5 text-xs text-black/90 sm:text-sm">
+                      Average connect time: <span className="font-semibold text-emerald-400">42 sec</span>
+                    </p>
+                  </div>
+                </div>
+                <div
+                  onClick={open}
+                  className="flex shrink-0 cursor-pointer flex-row gap-3 rounded-xl border border-white/70 bg-black/70 px-4 py-3 sm:min-w-[200px]"
+                >
+                  <div className="flex flex-col justify-between">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="size-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_0_2px_rgba(74,222,128,0.35)]"
+                        aria-hidden
+                      />
+                      <span className="text-xs font-extrabold tracking-wide text-white uppercase sm:text-sm">
+                        Vans live right now
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/85 sm:text-sm">Walk any van from anywhere</p>
+                  </div>
+                  <span className="text-3xl font-black text-emerald-400 tabular-nums sm:text-4xl">
+                    {users.length > 0 ? users.length : '—'}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div id="home-search" className="relative z-20 mt-8 w-full shrink-0 scroll-mt-24 sm:mt-10 md:mt-12">
-            <div className="overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-[0_22px_50px_-12px_rgba(0,0,0,0.18)] sm:rounded-[1.25rem]">
-              <div
-                role="tablist"
-                aria-label="Search options"
-                className={cn(
-                  'grid min-w-0 overflow-x-hidden border-b border-neutral-200',
-                  // isAvailable ? 'grid-cols-3' : 'grid-cols-2',
-                  isAvailable ? 'grid-cols-2' : 'grid-cols-1',
-                )}
-              >
+            <div className="flex flex-col gap-4 rounded-2xl border border-neutral-200/90 bg-white p-4 shadow-[0_22px_50px_-12px_rgba(0,0,0,0.18)] sm:p-5 lg:gap-5">
+              <div className="flex items-start justify-between gap-3">
+                <h2 className="text-base font-black tracking-wide text-neutral-900 uppercase sm:text-lg">
+                  Find your van
+                </h2>
                 <button
                   type="button"
-                  role="tab"
-                  aria-selected={searchTab === 'inventory'}
-                  title="Search inventory"
-                  onClick={() => setSearchTab('inventory')}
-                  className={cn(
-                    'relative flex min-h-12 min-w-0 flex-col items-stretch justify-center p-0 text-center transition-colors',
-                    'text-xs font-extrabold tracking-wide uppercase sm:text-sm',
-                    searchTab === 'inventory' ? 'text-neutral-900' : 'text-neutral-500',
-                    searchTab === 'inventory' &&
-                      'after:bg-primary after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full',
-                  )}
+                  onClick={clearHeroFilters}
+                  className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs font-semibold text-neutral-600 transition hover:text-neutral-900 sm:text-sm"
                 >
-                  <span className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col justify-center px-1 py-4 sm:px-2">
-                    <span className="flex min-w-0 flex-col items-center justify-center gap-1 @min-[13rem]:flex-row @min-[13rem]:flex-nowrap @min-[13rem]:gap-2">
-                      <Search
-                        className={cn(
-                          'size-4 shrink-0 sm:size-5',
-                          searchTab === 'inventory' ? 'text-neutral-900' : 'text-neutral-400',
-                        )}
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                      <span className="max-w-full min-w-0 text-center text-balance wrap-break-word @min-[13rem]:whitespace-nowrap">
-                        Search inventory
-                      </span>
-                    </span>
-                  </span>
+                  Clear all
+                  <RotateCcw className="size-3.5 shrink-0 text-neutral-500 sm:size-4" strokeWidth={2} aria-hidden />
                 </button>
-                {/* <button
-                  type="button"
-                  role="tab"
-                  aria-selected={searchTab === 'ai'}
-                  title="AI assisted search"
-                  onClick={() => setSearchTab('ai')}
-                  className={cn(
-                    'relative flex min-h-12 min-w-0 flex-col items-stretch justify-center p-0 text-center transition-colors',
-                    'text-xs font-extrabold tracking-wide uppercase sm:text-sm',
-                    searchTab === 'ai' ? 'text-neutral-900' : 'text-neutral-500',
-                    searchTab === 'ai' &&
-                      'after:bg-primary after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full',
-                  )}
-                >
-                  <span className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col justify-center px-1 py-4 sm:px-2">
-                    <span className="flex min-w-0 flex-col items-center justify-center gap-1 @min-[13rem]:flex-row @min-[13rem]:flex-nowrap @min-[13rem]:gap-2">
-                      <Sparkles
-                        className={cn(
-                          'size-4 shrink-0 sm:size-5',
-                          searchTab === 'ai' ? 'text-primary' : 'text-primary/60',
-                        )}
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                      <span className="flex max-w-full min-w-0 flex-col items-center gap-0.5 @min-[13rem]:flex-row @min-[13rem]:flex-nowrap @min-[13rem]:items-center @min-[13rem]:gap-1.5">
-                        <span className="min-w-0 text-center text-balance wrap-break-word @min-[13rem]:text-left @min-[13rem]:whitespace-nowrap">
-                          AI assisted search
-                        </span>
-                        <Badge className="shrink-0 border-sky-200/90 bg-sky-100 px-1 py-0 text-[8px] font-extrabold tracking-wide text-sky-900 uppercase sm:px-1.5 sm:text-[10px]">
-                          New
-                        </Badge>
-                      </span>
-                    </span>
-                  </span>
-                </button> */}
-                {isAvailable ? (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={searchTab === 'live'}
-                    title="See vans live"
-                    onClick={() => setSearchTab('live')}
-                    className={cn(
-                      'relative flex min-h-12 min-w-0 flex-col items-stretch justify-center p-0 text-center transition-colors',
-                      'text-xs font-extrabold tracking-wide uppercase sm:text-sm',
-                      searchTab === 'live' ? 'text-neutral-900' : 'text-neutral-500',
-                      searchTab === 'live' &&
-                        'after:bg-primary after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full',
-                    )}
-                  >
-                    <span className="@container flex min-h-0 w-full min-w-0 flex-1 flex-col justify-center px-1 py-4 sm:px-2">
-                      <span className="flex min-w-0 flex-col items-center justify-center gap-1 @min-[13rem]:flex-row @min-[13rem]:flex-nowrap @min-[13rem]:gap-2">
-                        <Camera
-                          className={cn(
-                            'size-4 shrink-0 sm:size-5',
-                            searchTab === 'live' ? 'text-neutral-900' : 'text-neutral-400',
-                          )}
-                          strokeWidth={2}
-                          aria-hidden
-                        />
-                        <span className="max-w-full min-w-0 text-center text-balance wrap-break-word @min-[13rem]:whitespace-nowrap">
-                          See vans live
-                        </span>
-                        <span
-                          className="size-2 shrink-0 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(16,185,129,0.25)]"
-                          title="Live"
-                          aria-hidden
-                        />
-                      </span>
-                    </span>
-                  </button>
-                ) : null}
               </div>
 
-              {searchTab === 'inventory' ? (
-                <div className="flex flex-col gap-3 p-4 lg:gap-4">
-                  <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4">
-                    <div className="flex min-h-[52px] w-full flex-col justify-center gap-0.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 transition hover:border-neutral-300 hover:bg-neutral-50/80">
-                      <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">Make</span>
-                      <FilterMultiSelect
-                        options={getMakeOptions({ body: 'class-b' })}
-                        selected={filterMakes}
-                        onChange={setFilterMakes}
-                        allLabel="Any make"
-                        countNoun="makes"
-                        aria-label="Filter by make"
-                        triggerClassName="min-h-0 w-full justify-between rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-primary"
-                        contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
-                      />
-                    </div>
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-3">
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <Van className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">Make</span>
+                    <FilterMultiSelect
+                      options={getMakeOptions({ body: 'class-b' })}
+                      selected={filterMakes}
+                      onChange={setFilterMakes}
+                      allLabel="Any Make"
+                      countNoun="makes"
+                      aria-label="Filter by make"
+                      triggerClassName="min-h-0 w-full justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
+                    />
+                  </div>
+                </div>
 
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <Search className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">Model</span>
+                    <FilterMultiSelect
+                      options={getModelOptions({ body: 'class-b' })}
+                      selected={filterModels}
+                      onChange={setFilterModels}
+                      allLabel="Any Model"
+                      countNoun="models"
+                      aria-label="Filter by model"
+                      triggerClassName="min-h-0 w-full justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <Tag className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                      New / Used
+                    </span>
+                    <FilterMultiSelect
+                      options={inventoryTypeOptions}
+                      selected={filterInventoryTypes}
+                      onChange={setFilterInventoryTypes}
+                      allLabel="Any"
+                      countNoun="conditions"
+                      aria-label="New or used inventory"
+                      triggerClassName="min-h-0 w-full justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <Calendar className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">Year</span>
+                    <FilterSingleSelect
+                      options={yearOptions}
+                      value={filterYearValue}
+                      onChange={(v) => {
+                        if (v == null) {
+                          setFilterMinYear(null);
+                          setFilterMaxYear(null);
+                        } else {
+                          setFilterMinYear(v);
+                          setFilterMaxYear(v);
+                        }
+                      }}
+                      emptyLabel="Any Year"
+                      aria-label="Filter by year"
+                      triggerClassName="min-h-0 w-full justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <CircleDollarSign className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">Price</span>
+                    <FilterPriceSelect
+                      variant="max"
+                      options={maxPriceOptions}
+                      value={filterMaxPrice?.toString() ?? ''}
+                      onChange={(value) => setFilterMaxPrice(value ? parseInt(value, 10) : null)}
+                      otherBound=""
+                      emptyLabel="Any Price"
+                      aria-label="Filter by maximum price"
+                      triggerClassName="min-h-0 w-full justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex min-h-18 w-full items-center gap-3 rounded-lg border border-neutral-200 bg-white px-3 py-2.5 transition hover:border-neutral-300 hover:bg-neutral-50/80 sm:min-h-19">
+                  <MapPin className="size-5 shrink-0 text-neutral-400" strokeWidth={2} aria-hidden />
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
+                    <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
+                      Location
+                    </span>
                     <LocationMultiSelect
                       selected={filterLocations}
                       onChange={setFilterLocations}
                       emptySummaryLabel="Nationwide"
-                      fieldLabel="Location"
-                      triggerClassName="min-h-[52px] rounded-lg border border-neutral-200 bg-white px-3 py-2 transition hover:border-neutral-300 hover:bg-neutral-50/80 focus-visible:ring-2 focus-visible:ring-primary/40"
+                      triggerClassName="min-h-0 w-full flex-row items-center justify-between gap-2 rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-2 focus-visible:ring-primary/40 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-neutral-500"
+                      contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[260px]"
                     />
-
-                    <div className="flex min-h-[52px] w-full flex-col justify-center gap-0.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 transition hover:border-neutral-300 hover:bg-neutral-50/80">
-                      <span className="text-[10px] font-semibold tracking-wider text-neutral-500 uppercase">
-                        Max price
-                      </span>
-                      <FilterPriceSelect
-                        variant="max"
-                        options={maxPriceOptions}
-                        value={filterMaxPrice?.toString() ?? ''}
-                        onChange={(value) => setFilterMaxPrice(value ? parseInt(value, 10) : null)}
-                        otherBound=""
-                        emptyLabel="Any price"
-                        aria-label="Filter by maximum price"
-                        triggerClassName="min-h-0 w-full justify-between rounded-none border-0 bg-transparent p-0 shadow-none hover:bg-transparent focus-visible:ring-0 [&>span]:text-base [&>span]:font-bold [&>span]:text-neutral-900 [&_svg]:text-primary"
-                        contentClassName="min-w-[min(100%,var(--radix-popover-trigger-width))] sm:min-w-[240px]"
-                      />
-                    </div>
-
-                    <div className="col-span-1 w-full min-w-0 sm:col-span-3 md:col-span-1">
-                      <Button
-                        type="button"
-                        onClick={submitSearch}
-                        className="bg-primary hover:bg-primary/90 text-primary-foreground flex h-auto min-h-[52px] w-full shrink-0 cursor-pointer rounded-lg px-6 py-3 text-sm font-extrabold tracking-wide uppercase"
-                      >
-                        Search vans
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="px-4 pt-0 pb-2 sm:px-4 sm:pb-3">
-                    <button
-                      type="button"
-                      onClick={() => setMoreFiltersOpen(true)}
-                      className="mx-auto flex cursor-pointer items-center gap-2 text-xs font-extrabold tracking-wide text-neutral-900 uppercase sm:text-sm"
-                    >
-                      <SlidersHorizontal className="size-4 shrink-0" strokeWidth={2} aria-hidden />
-                      More filters
-                      <ChevronDown className="text-primary size-4 shrink-0" strokeWidth={2} aria-hidden />
-                    </button>
                   </div>
                 </div>
-              ) : null}
+              </div>
 
-              {searchTab === 'ai' ? (
-                <div className="flex flex-col gap-3 p-4 lg:items-stretch lg:gap-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-4">
-                    <label className="flex min-h-[52px] min-w-0 flex-1 cursor-text flex-row items-center justify-center gap-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 sm:gap-3">
-                      <Sparkles className="text-primary mx-auto size-5 shrink-0 sm:mx-0" strokeWidth={2} aria-hidden />
-                      <input
-                        type="search"
-                        value={keyword}
-                        onChange={(e) => setKeyword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            applyAiSearch({ q: keyword.trim() });
-                          }
-                        }}
-                        placeholder="Describe the van you want — layout, budget, must-haves…"
-                        className="w-full min-w-0 bg-transparent text-base font-semibold text-neutral-900 outline-none placeholder:font-medium placeholder:text-neutral-500"
-                        autoComplete="off"
-                      />
-                    </label>
-                    <Button
-                      type="button"
-                      onClick={() => applyAiSearch({ q: keyword.trim() })}
-                      className="bg-primary hover:bg-primary/90 text-primary-foreground h-auto min-h-[52px] w-full shrink-0 cursor-pointer self-stretch rounded-lg px-6 py-2 text-sm font-extrabold tracking-wide uppercase sm:w-[min(100%,11rem)] sm:min-w-44"
-                    >
-                      Search vans
-                    </Button>
-                  </div>
+              <Button
+                type="button"
+                onClick={submitSearch}
+                className="flex h-auto min-h-14 w-full cursor-pointer items-center justify-between gap-3 rounded-lg border-0 bg-[#B57D3E] px-4 py-3.5 text-sm font-black tracking-wide text-white uppercase shadow-none hover:bg-[#a06f35] focus-visible:ring-white/40"
+              >
+                <span className="min-w-0 flex-1 text-center">
+                  {inventoryMatchTotal != null
+                    ? `View inventory (${inventoryMatchTotal.toLocaleString('en-US')} vans)`
+                    : 'View inventory'}
+                </span>
+                <ArrowRight className="size-5 shrink-0 text-white" strokeWidth={2.5} aria-hidden />
+              </Button>
 
-                  <div className="p-4">
-                    <button
-                      type="button"
-                      onClick={() => setAiSearchDialogOpen(true)}
-                      className="mx-auto flex cursor-pointer items-center gap-2 text-xs font-extrabold tracking-wide text-neutral-900 uppercase sm:text-sm"
-                    >
-                      <SlidersHorizontal className="size-4 shrink-0" strokeWidth={2} aria-hidden />
-                      More filters
-                      <ChevronDown className="text-primary size-4 shrink-0" strokeWidth={2} aria-hidden />
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {searchTab === 'live' && isAvailable ? (
-                <div className="mt-6 flex flex-col items-center gap-4 rounded-lg border border-dashed border-neutral-200 bg-neutral-50/60 px-4 py-8 text-center sm:mx-4 sm:mb-4 sm:py-10">
-                  <Camera className="text-primary size-10" strokeWidth={2} aria-hidden />
-                  <p className="max-w-md text-sm leading-relaxed text-neutral-700">
-                    Connect with a specialist for a live walkthrough of real inventory - no pressure, just answers.
-                  </p>
-                  <Button
-                    type="button"
-                    onClick={() => setSeeLiveDialogOpen(true)}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-12 cursor-pointer rounded-lg px-8 text-sm font-extrabold tracking-wide uppercase"
-                  >
-                    Open live showroom
-                  </Button>
-                </div>
-              ) : null}
+              <div className="flex justify-center pt-0 pb-0">
+                <button
+                  type="button"
+                  onClick={() => setMoreFiltersOpen(true)}
+                  className="flex cursor-pointer items-center gap-2 text-xs font-extrabold tracking-wide text-neutral-900 uppercase sm:text-sm"
+                >
+                  <SlidersHorizontal className="size-4 shrink-0 text-neutral-500" strokeWidth={2} aria-hidden />
+                  More Filters
+                  <ChevronDown className="size-4 shrink-0 text-neutral-500" strokeWidth={2} aria-hidden />
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -807,37 +864,53 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* <button
+      <button
         type="button"
         aria-label="Open Ask RecVan AI"
-        onClick={() => setAiChatDialogOpen(true)}
+        onClick={() => {}}
         className="border-border fixed right-4 bottom-6 z-50 flex max-w-[min(100vw-2rem,20rem)] cursor-pointer items-center gap-3 rounded-xl border bg-black p-3 pr-3 text-left shadow-lg transition hover:bg-black/90 sm:right-6 sm:bottom-8 sm:p-4"
       >
         <Sparkles className="size-6 shrink-0 text-white" strokeWidth={2} aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-extrabold tracking-wide text-white uppercase">Ask RecVan AI</span>
-          <span className="mt-0.5 block text-[11px] leading-snug text-white">Ask anything!</span>
-        </span>
-      </button> */}
+      </button>
 
       <SeeLiveDialog open={seeLiveDialogOpen} onOpenChange={setSeeLiveDialogOpen} featuredUnits={units} />
       <ContactDialog open={contactDialogOpen} onOpenChange={setContactDialogOpen} />
       <MoreFiltersDialog
         open={moreFiltersOpen}
         onOpenChange={setMoreFiltersOpen}
-        initialMakes={filterMakes}
-        initialMaxPrice={filterMaxPrice}
-        initialLocations={filterLocations}
+        makes={filterMakes}
+        models={filterModels}
+        locations={filterLocations}
+        rvTypes={filterRvTypes}
+        driveTrains={filterDriveTrains}
+        fuels={filterFuels}
+        inventoryTypes={filterInventoryTypes}
+        features={filterFeatures}
+        sleeps={filterSleeps}
+        minYear={filterMinYear}
+        maxYear={filterMaxYear}
+        minPrice={filterMinPrice}
+        maxPrice={filterMaxPrice}
+        minMileage={filterMinMileage}
+        maxMileage={filterMaxMileage}
+        setMakes={setFilterMakes}
+        setModels={setFilterModels}
+        setLocations={setFilterLocations}
+        setRvTypes={setFilterRvTypes}
+        setDriveTrains={setFilterDriveTrains}
+        setFuels={setFilterFuels}
+        setInventoryTypes={setFilterInventoryTypes}
+        setFeatures={setFilterFeatures}
+        setSleeps={setFilterSleeps}
+        setMinYear={setFilterMinYear}
+        setMaxYear={setFilterMaxYear}
+        setMinPrice={setFilterMinPrice}
+        setMaxPrice={setFilterMaxPrice}
+        setMinMileage={setFilterMinMileage}
+        setMaxMileage={setFilterMaxMileage}
+        totalCount={inventoryMatchTotal}
         onApply={applyMoreFilters}
       />
-      <AiSearchDialog
-        open={aiSearchDialogOpen}
-        onOpenChange={setAiSearchDialogOpen}
-        keyword={keyword}
-        onKeywordChange={setKeyword}
-        onApply={applyAiSearch}
-      />
-      {/* <AiChatDialog open={aiChatDialogOpen} onOpenChange={setAiChatDialogOpen} /> */}
     </div>
   );
 }

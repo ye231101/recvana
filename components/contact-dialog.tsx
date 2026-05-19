@@ -1,19 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import Image from 'next/image';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import Image from 'next/image';
-import { Loader2, Lock, Mail, MessageSquare, Phone, Shield, Tag, User, Zap } from 'lucide-react';
+import { Loader2, Lock, Mail, MessageSquare, Phone, Shield, Tag, User, X, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/utils';
+import { cn, unitThumbnailSrc } from '@/lib/utils';
 import { type InventoryUnit } from '@/lib/types';
 
 const MESSAGE_MAX = 300;
@@ -33,16 +33,8 @@ type ContactDialogProps = {
   unit?: InventoryUnit;
 };
 
-function unitThumbnailSrc(unit: InventoryUnit): string {
-  if (unit.thumbnails?.length) return unit.thumbnails[0]!;
-  if (unit.images?.length) return unit.images[0]!;
-  if (unit.defaultImageUrl) return unit.defaultImageUrl;
-  return '/images/photos_coming_soon.jpg';
-}
-
 export function ContactDialog({ open, onOpenChange, unit }: ContactDialogProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const {
     register,
@@ -76,79 +68,75 @@ export function ContactDialog({ open, onOpenChange, unit }: ContactDialogProps) 
     }
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    const id = requestAnimationFrame(() => {
-      el.scrollTop = el.scrollHeight;
-    });
-    return () => cancelAnimationFrame(id);
-  }, [open]);
-
-  const thumbSrc = unit ? unitThumbnailSrc(unit) : '/images/photos_coming_soon.jpg';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton
-        className="[&>button]:text-foreground h-[90vh] gap-0 overflow-y-auto rounded-xl border-neutral-200 p-0 shadow-xl sm:max-w-xl [&>button]:top-3 [&>button]:right-4 [&>button]:z-30 [&>button]:opacity-70 hover:[&>button]:opacity-100"
+        className="h-full w-full gap-0 overflow-y-auto rounded-xl border-neutral-200 p-0 shadow-xl sm:h-[90vh] sm:max-h-[90vh] sm:max-w-xl"
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
-          <div className="space-y-5 p-6 pb-4">
-            <DialogHeader className="space-y-1 pr-8 text-left md:space-y-2">
-              <DialogTitle className="text-foreground text-xl leading-tight font-bold tracking-tight md:text-2xl">
-                Get Your Best Price
-              </DialogTitle>
-              <p className="text-primary text-sm font-medium">It's fast, easy & no obligation.</p>
-              <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
-                Tell us a little about yourself and we'll send you{' '}
-                <span className="text-foreground font-semibold">our best available price and availability.</span>
-              </DialogDescription>
-            </DialogHeader>
+        <DialogHeader className="border-b border-neutral-200 p-4">
+          <DialogTitle className="text-foreground text-xl leading-tight font-bold tracking-tight md:text-2xl">
+            Get Your Best Price
+          </DialogTitle>
+          <p className="text-primary text-sm font-medium">It's fast, easy & no obligation.</p>
+          <DialogDescription className="text-muted-foreground text-sm leading-relaxed">
+            Tell us a little about yourself and we'll send you{' '}
+            <span className="text-foreground font-semibold">our best available price and availability.</span>
+          </DialogDescription>
+        </DialogHeader>
 
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
+          <div className="space-y-5 p-4">
             {unit && (
               <div className="flex gap-3 rounded-lg border border-neutral-200 bg-neutral-50/80 p-3">
-                <div className="bg-muted relative h-[72px] w-[96px] shrink-0 overflow-hidden rounded-md border border-neutral-200">
-                  <Image src={thumbSrc} alt={unit.title} fill className="object-cover" sizes="96px" unoptimized />
+                <div className="bg-muted relative h-auto w-24 shrink-0 overflow-hidden rounded-md border border-neutral-200">
+                  <Image
+                    src={unitThumbnailSrc(unit)}
+                    alt={unit.title}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                    unoptimized
+                  />
                 </div>
                 <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="text-foreground text-sm leading-snug font-semibold">{unit.title}</p>
+                  <p className="text-foreground text-sm font-semibold">{unit.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Stock# {unit.stockNumber}
-                    <br />
-                    {unit.location}
+                    <span className="block">Stock# {unit.stockNumber}</span>
+                    <span className="block">{unit.location}</span>
                   </p>
                 </div>
               </div>
             )}
 
             <div className="divide-border grid grid-cols-1 divide-y rounded-lg border border-neutral-200 bg-neutral-50/80 md:grid-cols-3 md:divide-x md:divide-y-0">
-              <div className="flex items-center gap-1 p-2">
-                <Tag className="text-primary size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-                <div className="min-w-0 text-left">
-                  <p className="text-foreground text-[11px] leading-tight font-bold sm:text-xs">Best Prices</p>
-                  <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug sm:text-[11px]">Every Day</p>
+              {[
+                {
+                  label: 'Best Prices',
+                  description: 'Every Day',
+                  Icon: Tag,
+                },
+                {
+                  label: 'Fast Response',
+                  description: 'Typically within minutes',
+                  Icon: Zap,
+                },
+                {
+                  label: 'No Obligation',
+                  description: "You're in control",
+                  Icon: Shield,
+                },
+              ].map(({ label, description, Icon }) => (
+                <div key={label} className="flex items-center gap-2 p-2">
+                  <Icon className="text-primary size-5 shrink-0" strokeWidth={2} aria-hidden />
+                  <div className="min-w-0 text-left">
+                    <p className="text-foreground text-sm font-semibold">{label}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1 p-2">
-                <Zap className="text-primary size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-                <div className="min-w-0 text-left">
-                  <p className="text-foreground text-[11px] leading-tight font-bold sm:text-xs">Fast Response</p>
-                  <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug sm:text-[11px]">
-                    Typically within minutes
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 p-2">
-                <Shield className="text-primary size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-                <div className="min-w-0 text-left">
-                  <p className="text-foreground text-[11px] leading-tight font-bold sm:text-xs">No Obligation</p>
-                  <p className="text-muted-foreground mt-0.5 text-[10px] leading-snug sm:text-[11px]">
-                    You&apos;re in control
-                  </p>
-                </div>
-              </div>
+              ))}
             </div>
 
             <div className="space-y-4">
@@ -234,13 +222,13 @@ export function ContactDialog({ open, onOpenChange, unit }: ContactDialogProps) 
             </div>
           </div>
 
-          <div className="border-border bg-muted/30 space-y-4 border-t px-6 py-5">
+          <div className="border-border bg-muted/30 space-y-4 border-t p-4">
             {submitError ? <p className="text-destructive text-center text-sm">{submitError}</p> : null}
             <p className="text-muted-foreground flex items-center justify-center gap-1.5 text-xs">
               <Lock className="size-3.5 shrink-0" aria-hidden />
               Your information is safe and secure.
             </p>
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col gap-2">
               <Button type="submit" disabled={isSubmitting} size="lg" className="w-full cursor-pointer font-semibold">
                 {isSubmitting ? (
                   <>
